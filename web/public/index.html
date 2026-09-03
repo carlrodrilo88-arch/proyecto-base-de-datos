@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Meditec Reportes</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section id="loginView" class="login">
+        <div class="brand">
+          <span class="mark">M</span>
+          <div>
+            <h1>Meditec Reportes</h1>
+            <p>Acceso al sistema documental</p>
+          </div>
+        </div>
+        <form id="loginForm" class="panel">
+          <label>
+            Correo
+            <input name="correo" type="email" value="admin@meditec.local" required>
+          </label>
+          <label>
+            Contrasena
+            <input name="password" type="password" value="admin123" required>
+          </label>
+          <button type="submit">Ingresar</button>
+          <p id="loginMessage" class="message"></p>
+        </form>
+      </section>
+
+      <section id="appView" class="app hidden">
+        <aside class="sidebar">
+          <div class="brand compact">
+            <span class="mark">M</span>
+            <div>
+              <h1>Meditec</h1>
+              <p id="userLabel"></p>
+            </div>
+          </div>
+          <nav>
+            <button class="nav-button active" data-module="servicios">Servicios solicitantes</button>
+            <button class="nav-button" data-module="tecnicos">Tecnicos</button>
+          </nav>
+          <button id="logoutButton" class="secondary">Salir</button>
+        </aside>
+
+        <section class="content">
+          <header>
+            <div>
+              <h2 id="moduleTitle">Servicios solicitantes</h2>
+              <p id="moduleSubtitle">CRUD conectado a PostgreSQL</p>
+            </div>
+          </header>
+
+          <form id="recordForm" class="toolbar">
+            <input type="hidden" name="id">
+            <input name="nombre" placeholder="Nombre" required>
+            <input name="telefono" placeholder="Telefono">
+            <input name="correo" placeholder="Correo">
+            <input name="extra" placeholder="Direccion">
+            <label class="check">
+              <input name="activo" type="checkbox" checked>
+              Activo
+            </label>
+            <button type="submit">Guardar</button>
+            <button type="button" id="clearButton" class="secondary">Nuevo</button>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr id="tableHead"></tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <p id="appMessage" class="message"></p>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
+
