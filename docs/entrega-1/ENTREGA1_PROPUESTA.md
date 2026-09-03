@@ -17,7 +17,8 @@ para aplicar permisos y poca escalabilidad.
 ## Propuesta
 
 Se propone desarrollar una aplicacion web conectada a una base de datos
-PostgreSQL alojada en la nube. El sistema permitira registrar clientes,
+PostgreSQL alojada en la nube. El sistema permitira registrar servicios
+solicitantes,
 proveedores, tecnicos e instituciones, generar o cargar reportes PDF con formato
 corporativo y consultar cada documento mediante un ID unico.
 
@@ -29,7 +30,7 @@ relacional PostgreSQL.
 
 ## Objetivos especificos
 
-- Registrar informacion de clientes, proveedores, tecnicos e instituciones.
+- Registrar informacion de servicios solicitantes, proveedores, tecnicos e instituciones.
 - Generar identificadores unicos para cada reporte.
 - Asociar archivos PDF a los reportes registrados.
 - Controlar el acceso mediante usuarios, roles y equipos autorizados.

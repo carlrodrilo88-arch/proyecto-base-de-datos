@@ -8,17 +8,14 @@ para Meditec.
 
 ## Entidades y atributos
 
-### Cliente
+### Servicio_Solicitante
 
-Representa a los clientes relacionados con los reportes generados por Meditec.
+Representa a la persona, area o entidad que solicita un servicio o reporte a
+Meditec.
 
-- id_cliente: llave primaria.
+- id: llave primaria.
 - nombre.
-- nit.
-- telefono.
-- correo.
-- direccion.
-- estado.
+- estado: activo/desactivado.
 
 ### Institucion
 
@@ -125,7 +122,7 @@ Representa los eventos importantes registrados por el sistema para trazabilidad.
 | --- | --- | --- | --- |
 | Tiene | Rol - Usuario | 1:N | Un rol puede asignarse a muchos usuarios; cada usuario tiene un rol. |
 | Crea | Usuario - Reporte | 1:N | Un usuario puede crear muchos reportes; cada reporte es creado por un usuario. |
-| Pertenece_a | Cliente - Reporte | 1:N | Un cliente puede tener muchos reportes; cada reporte pertenece a un cliente. |
+| Solicita | Servicio_Solicitante - Reporte | 1:N | Un servicio solicitante puede tener muchos reportes; cada reporte pertenece a un servicio solicitante. |
 | Se_genera_para | Institucion - Reporte | 1:N | Una institucion puede estar asociada a muchos reportes; cada reporte puede generarse para una institucion. |
 | Adjunta | Reporte - Archivo_PDF | 1:1 | Un reporte publicado debe tener un archivo PDF asociado. |
 | Usa | Equipo_Autorizado - Reporte | 1:N | Un equipo autorizado puede usarse para registrar muchos reportes; cada reporte cargado se asocia al equipo utilizado. |
@@ -159,7 +156,7 @@ El diagrama debe permitir justificar que el sistema puede:
 
 - Registrar entidades principales del negocio.
 - Crear reportes con identificador unico.
-- Asociar reportes a clientes, instituciones, tecnicos y proveedores.
+- Asociar reportes a servicios solicitantes, instituciones, tecnicos y proveedores.
 - Controlar usuarios, roles y equipos autorizados.
 - Asociar reportes con archivos PDF.
 - Registrar acciones importantes en auditoria.

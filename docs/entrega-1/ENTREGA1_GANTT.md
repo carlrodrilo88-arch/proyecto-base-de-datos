@@ -39,7 +39,7 @@ reportes.
 | Diccionario de datos | Integrante 1 |  |  |  | X | X |  |  |  |  |  |  |  |
 | Scripts DDL | Integrante 2 |  |  |  |  | X |  |  |  |  |  |  |  |
 | Login y estructura web | Integrante 3 |  |  |  | X | X |  |  |  |  |  |  |  |
-| CRUD de clientes | Integrante 1 |  |  |  |  | X |  |  |  |  |  |  |  |
+| CRUD de servicios solicitantes | Integrante 1 |  |  |  |  | X |  |  |  |  |  |  |  |
 | CRUD de reportes | Integrante 3 |  |  |  |  | X |  |  |  |  |  |  |  |
 | Datos de prueba | Integrante 1 |  |  |  |  |  | X |  |  |  |  |  |  |
 | Vistas SQL | Integrante 2 |  |  |  |  |  | X | X |  |  |  |  |  |

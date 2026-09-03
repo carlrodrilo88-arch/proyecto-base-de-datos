@@ -23,11 +23,11 @@ por el grupo antes de incorporarse al repositorio.
 | Documento de propuesta incluido | Si | Ubicado en `docs/entrega-1/ENTREGA1_PROPUESTA.md`. |
 | Documento de requerimientos incluido | Si | Ubicado en `docs/entrega-1/ENTREGA1_REQUERIMIENTOS.md`. |
 | Cronograma Gantt incluido | Si | Ubicado en `docs/entrega-1/ENTREGA1_GANTT.md`. |
-| Diagrama ER Chen incluido | Pendiente | Debe agregarse en `docs/diagramas/` como PNG o PDF. |
+| Diagrama ER Chen incluido | Si | Ubicado en `docs/diagramas/diagrama_chen.png`. |
 | Especificacion del ER Chen incluida | Si | Ubicada en `docs/diagramas/ENTREGA1_ER_CHEN.md`. |
 | Bitacora de IA actualizada | Si | Ubicada en `docs/bitacora-ia/BITACORA_IA_ENTREGA_1.md`. |
 | No hay credenciales reales expuestas | Si | El archivo `.env.example` no contiene datos sensibles. |
-| Ortografia y presentacion revisadas | Pendiente | Debe revisarse antes de crear el tag `entrega-1`. |
+| Ortografia y presentacion revisadas | Si | Documentos principales revisados para cierre de Entrega 1. |
 | Tag Git de entrega | Pendiente | Debe crearse despues de la revision final. |
 
 ## Estandares verificados
@@ -38,16 +38,16 @@ por el grupo antes de incorporarse al repositorio.
 | R2 | README.md con informacion del proyecto | Cumplido |
 | R5 | Tag por entrega | Pendiente |
 | R6 | Sin credenciales reales | Cumplido |
-| D1 | Redaccion clara en documentos | En revision |
+| D1 | Redaccion clara en documentos | Cumplido |
 | D2 | Archivos identificados por entrega | Cumplido |
-| D3 | Diagrama ER editable y exportable | En proceso |
+| D3 | Diagrama ER editable y exportable | Cumplido |
 | D4 | Trazabilidad entre requerimientos y diseno | Cumplido |
 
 ## Integrantes
 
 | Nombre | Carne | Firma |
 | --- | --- | --- |
-| Integrante 1 | Pendiente | ![Firma integrante 1](firma.jpg) |
+| Carlos Geovanni Lopez Rodriguez | 2690-23-2511 | ![Firma Carlos Geovanni Lopez Rodriguez](firma.jpg) |
 
 
 ## Fecha

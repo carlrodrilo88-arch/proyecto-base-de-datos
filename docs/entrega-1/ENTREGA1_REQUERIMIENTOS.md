@@ -15,24 +15,24 @@ centralizar la creacion, administracion y consulta de reportes PDF.
 | Generador de reportes  | Crea reportes y carga o genera archivos PDF desde equipos autorizados. |
 | Usuario de consulta    | Busca y visualiza reportes disponibles en el sistema. |
 | Tecnico                | Persona responsable de realizar servicios o participar en reportes. |
-| Cliente o institucion  | Entidad relacionada con los reportes generados por Meditec. |
+| Servicio solicitante o institucion | Entidad relacionada con los reportes generados por Meditec. |
 
 ## Requerimientos funcionales
 RF= requerimiento funcional
 | Codigo | Requerimiento |
 | --- | --- |
-| RF-01 | El sistema debe permitir registrar clientes. |
+| RF-01 | El sistema debe permitir registrar servicios solicitantes. |
 | RF-02 | El sistema debe permitir registrar proveedores. |
 | RF-03 | El sistema debe permitir registrar tecnicos. |
 | RF-04 | El sistema debe permitir registrar instituciones. |
 | RF-05 | El sistema debe permitir registrar usuarios del sistema. |
 | RF-06 | El sistema debe permitir asignar roles y permisos a los usuarios. |
 | RF-07 | El sistema debe permitir registrar equipos autorizados para generar o cargar reportes PDF. |
-| RF-08 | El sistema debe permitir crear reportes asociados a clientes, instituciones y tecnicos. |
+| RF-08 | El sistema debe permitir crear reportes asociados a servicios solicitantes, instituciones y tecnicos. |
 | RF-09 | El sistema debe generar o asignar un ID unico para cada reporte. |
 | RF-10 | El sistema debe permitir cargar o asociar un archivo PDF a cada reporte. |
 | RF-11 | El sistema debe permitir consultar reportes mediante su ID unico. |
-| RF-12 | El sistema debe permitir filtrar reportes por cliente, institucion, tecnico, fecha o estado. |
+| RF-12 | El sistema debe permitir filtrar reportes por servicio solicitante, institucion, tecnico, fecha o estado. |
 | RF-13 | El sistema debe registrar eventos importantes de auditoria. |
 | RF-14 | El sistema debe restringir la generacion y carga de PDFs a usuarios y equipos autorizados. |
 
@@ -40,7 +40,7 @@ RF= requerimiento funcional
 
 | Codigo | Dato requerido        | Descripcion |
 | ---    | ---                   | --- |
-| RD-01 | Clientes               | Informacion de clientes relacionados con reportes. |
+| RD-01 | Servicios solicitantes | Informacion de personas, areas o entidades que solicitan servicios o reportes. |
 | RD-02 | Proveedores            | Informacion de proveedores asociados a servicios, equipos o documentacion. |
 | RD-03 | Tecnicos               | Informacion del personal tecnico responsable de reportes o servicios. |
 | RD-04 | Instituciones          | Informacion de instituciones, sedes u organizaciones atendidas. |
@@ -73,19 +73,19 @@ RF= requerimiento funcional
 | RN-03 | Un reporte publicado debe tener un PDF asociado. |
 | RN-04 | Solo usuarios autorizados podran consultar reportes. |
 | RN-05 | Las acciones importantes del sistema deben registrarse en auditoria. |
-| RN-06 | Los datos de clientes, tecnicos, proveedores e instituciones deben mantenerse activos o inactivos sin eliminar historial. |
+| RN-06 | Los datos de servicios solicitantes, tecnicos, proveedores e instituciones deben mantenerse activos o inactivos sin eliminar historial. |
 
 ## Matriz requerimiento-entidad
 
 | Requerimiento                        | Entidades relacionadas |
 | ---                                  | --- |
-| Registrar clientes                   | Cliente |
+| Registrar servicios solicitantes     | Servicio_Solicitante |
 | Registrar proveedores                | Proveedor |
 | Registrar tecnicos                   | Tecnico |
 | Registrar instituciones              | Institucion |
 | Registrar usuarios y roles           | Usuario, Rol |
 | Registrar equipos autorizados        | Equipo autorizado |
-| Crear reportes                       | Reporte, Cliente, Institucion, Tecnico, Usuario |
+| Crear reportes                       | Reporte, Servicio_Solicitante, Institucion, Tecnico, Usuario |
 | Asociar PDFs a reportes              | Reporte, Archivo PDF |
 | Consultar reportes por ID            | Reporte, Archivo PDF |
 | Controlar generacion y carga de PDFs | Usuario, Rol, Equipo autorizado, Reporte |
