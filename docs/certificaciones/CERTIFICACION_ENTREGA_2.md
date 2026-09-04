@@ -21,9 +21,10 @@ normalizacion, diccionario de datos, DDL base y avance web solicitado.
 | Script DML minimo incluido | Si | Ubicado en `sql/dml/001_seed.sql`. |
 | Login web implementado | Si | Ubicado en `web/`. |
 | Dos modulos CRUD implementados | Si | Servicios solicitantes y tecnicos. |
+| Conexion web con PostgreSQL validada | Si | Probada mediante `http://localhost:3000/api/health`, con respuesta `ok: true`. |
 | AVANCE_WEB.md incluido | Si | Ubicado en `docs/entrega-2/AVANCE_WEB.md`. |
 | No hay credenciales reales expuestas | Si | Solo se incluyen credenciales academicas de prueba. |
-| Bitacora IA actualizada | Pendiente | Se actualizara solo con autorizacion del equipo. |
+| Bitacora IA actualizada | Si | Se agrego el registro de apoyo para resolver la conexion web con PostgreSQL. |
 | Tag Git de entrega | Pendiente | Debe crearse despues de la revision final. |
 
 ## Integrantes
