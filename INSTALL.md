@@ -34,5 +34,5 @@ psql -U postgres -d meditec_reportes -f sql/security/001_roles_permisos.sql
 
 Si el proyecto se presenta como prototipo academico, la aplicacion web puede usar
 datos de prueba y una ruta local para simular el almacenamiento de PDFs. La
-estructura de base de datos ya deja preparado el campo `pdf_url` para reemplazar
-esa ruta por almacenamiento en nube.
+estructura de base de datos ya deja preparado el campo `archivos_pdf.url_archivo`
+para reemplazar esa ruta por almacenamiento en nube.

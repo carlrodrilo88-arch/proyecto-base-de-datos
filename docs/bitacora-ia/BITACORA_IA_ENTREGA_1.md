@@ -1,5 +1,18 @@
 # Bitacora de Agentes IA - 
 
+## Registro 10
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 14/09/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Corregir inconsistencias entre los scripts SQL, la documentacion principal y el modelo actual de base de datos |
+| Prompt utilizado | Se solicito analizar el proyecto, identificar que contenia y corregir las inconsistencias detectadas en los scripts SQL y documentos relacionados |
+| Resultado obtenido | Se corrigio el procedimiento `generar_codigo_reporte()` para usar `id_reporte` en lugar de `id`. Tambien se actualizo la vista `vw_reportes_resumen` para utilizar las tablas reales del modelo actual: `servicios_solicitantes`, `instituciones`, `reporte_tecnico`, `tecnicos`, `reporte_proveedor`, `proveedores`, `usuarios` y `archivos_pdf`. Ademas, se ajustaron los permisos SQL para reemplazar `clientes` por `servicios_solicitantes` y agregar permisos sobre tablas relacionadas con PDFs, tecnicos y proveedores por reporte. Finalmente, se actualizo la documentacion principal para reemplazar referencias antiguas como `pdf_url`, `clientes` y `cliente_id` por los nombres actuales del esquema |
+| Validacion del grupo | El grupo debe ejecutar nuevamente los scripts SQL en PostgreSQL siguiendo el orden de `INSTALL.md` y confirmar que la vista, funciones, triggers y permisos se crean correctamente |
+| Estandares aplicados | S2, S3, S4, S7, S8, D1, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
 ## Registro 9
 
 | Campo | Detalle |

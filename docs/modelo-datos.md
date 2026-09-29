@@ -20,9 +20,9 @@ Define el nivel de acceso. Roles sugeridos:
 Registra las computadoras permitidas para generar o cargar reportes. Permite
 cumplir el requisito de limitar esa accion a dos equipos.
 
-### clientes
+### servicios_solicitantes
 
-Clientes para quienes se genera documentacion.
+Areas, departamentos o contactos que solicitan documentacion o reportes.
 
 ### proveedores
 
@@ -35,7 +35,7 @@ reportes.
 
 ### instituciones
 
-Instituciones relacionadas con clientes o servicios. Puede representar sedes,
+Instituciones relacionadas con servicios solicitantes. Puede representar sedes,
 hospitales, clinicas, departamentos u organizaciones.
 
 ### reportes
@@ -51,7 +51,7 @@ Bitacora de acciones relevantes ejecutadas dentro del sistema.
 
 - Un rol puede tener muchos usuarios.
 - Un usuario puede crear muchos reportes.
-- Un cliente puede tener muchos reportes.
+- Un servicio solicitante puede tener muchos reportes.
 - Una institucion puede tener muchos reportes.
 - Un tecnico puede estar asociado a muchos reportes.
 - Un reporte puede tener un PDF asociado.
@@ -73,7 +73,7 @@ Bitacora de acciones relevantes ejecutadas dentro del sistema.
 | roles | Catalogo de roles del sistema |
 | usuarios | Cuentas de acceso |
 | equipos_autorizados | Computadoras permitidas para generar/cargar |
-| clientes | Catalogo de clientes |
+| servicios_solicitantes | Catalogo de servicios solicitantes |
 | proveedores | Catalogo de proveedores |
 | tecnicos | Catalogo de tecnicos |
 | instituciones | Catalogo de instituciones |
@@ -83,9 +83,8 @@ Bitacora de acciones relevantes ejecutadas dentro del sistema.
 ## Indices recomendados
 
 - reportes.codigo_reporte
-- reportes.cliente_id
+- reportes.id_servicio_solicitante
 - reportes.institucion_id
-- reportes.tecnico_id
 - reportes.fecha_reporte
 - usuarios.correo
 - equipos_autorizados.identificador_equipo
