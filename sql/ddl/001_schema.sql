@@ -2,19 +2,11 @@
 -- Autor: Carlos Geovanni Lopez Rodriguez
 -- Descripcion: DDL base para el Sistema de Gestion Documental y Reportes Meditec.
 -- Dependencias: PostgreSQL 14 o superior.
+-- Uso: instalacion inicial sobre una base vacia. Este archivo no elimina datos.
 
-DROP TABLE IF EXISTS auditoria_eventos CASCADE;
-DROP TABLE IF EXISTS archivos_pdf CASCADE;
-DROP TABLE IF EXISTS reporte_proveedor CASCADE;
-DROP TABLE IF EXISTS reporte_tecnico CASCADE;
-DROP TABLE IF EXISTS reportes CASCADE;
-DROP TABLE IF EXISTS equipos_autorizados CASCADE;
-DROP TABLE IF EXISTS usuarios CASCADE;
-DROP TABLE IF EXISTS roles CASCADE;
-DROP TABLE IF EXISTS proveedores CASCADE;
-DROP TABLE IF EXISTS tecnicos CASCADE;
-DROP TABLE IF EXISTS instituciones CASCADE;
-DROP TABLE IF EXISTS servicios_solicitantes CASCADE;
+BEGIN;
+
+CREATE SEQUENCE secuencia_codigo_reporte AS BIGINT START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE roles (
     id_rol BIGSERIAL PRIMARY KEY,
@@ -162,7 +154,7 @@ CREATE TABLE reporte_proveedor (
 
 CREATE TABLE archivos_pdf (
     id_archivo_pdf BIGSERIAL PRIMARY KEY,
-    id_reporte BIGINT NOT NULL UNIQUE,
+    id_reporte BIGINT NOT NULL,
     url_archivo TEXT NOT NULL,
     hash_archivo VARCHAR(128),
     tamano_bytes BIGINT,
@@ -195,11 +187,14 @@ CREATE TABLE auditoria_eventos (
         ON DELETE SET NULL
 );
 
-CREATE INDEX idx_reportes_codigo ON reportes(codigo_reporte);
 CREATE INDEX idx_reportes_servicio ON reportes(id_servicio_solicitante);
 CREATE INDEX idx_reportes_institucion ON reportes(id_institucion);
 CREATE INDEX idx_reportes_fecha ON reportes(fecha_reporte);
 CREATE INDEX idx_reportes_estado ON reportes(estado);
-CREATE INDEX idx_archivos_pdf_reporte ON archivos_pdf(id_reporte);
+CREATE UNIQUE INDEX uq_archivo_pdf_activo_por_reporte
+    ON archivos_pdf(id_reporte)
+    WHERE estado = 'activo';
 CREATE INDEX idx_auditoria_entidad ON auditoria_eventos(entidad, entidad_id);
 CREATE INDEX idx_auditoria_fecha ON auditoria_eventos(fecha_evento);
+
+COMMIT;

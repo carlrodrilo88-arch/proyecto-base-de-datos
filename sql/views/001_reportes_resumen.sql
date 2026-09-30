@@ -29,6 +29,7 @@ JOIN usuarios u
     ON u.id_usuario = r.id_usuario_creador
 LEFT JOIN archivos_pdf ap
     ON ap.id_reporte = r.id_reporte
+   AND ap.estado = 'activo'
 GROUP BY
     r.id_reporte,
     r.codigo_reporte,
