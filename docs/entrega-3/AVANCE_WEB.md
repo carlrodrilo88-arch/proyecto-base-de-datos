@@ -14,13 +14,14 @@ borrador, vista previa, generacion, publicacion y consulta de reportes PDF.
 
 | Modulo | Funciones | Estado |
 | --- | --- | --- |
-| Autenticacion | Login bcrypt, sesion firmada en cookie y cierre de sesion | Implementado |
+| Autenticacion | Login bcrypt, sesion firmada, cambio obligatorio y cierre de sesion | Implementado |
+| Usuarios | Alta, rol, activacion y restablecimiento por administrador | Implementado; migracion 004 pendiente de aplicar |
 | Servicios | CRUD y relacion obligatoria con institucion | Implementado |
 | Tecnicos | CRUD con especialidad y estado | Implementado |
 | Instituciones | CRUD de datos de contacto | Implementado |
 | Proveedores | CRUD, logotipo, pie de pagina e identidad del reporte | Implementado |
 | Equipos medicos | CRUD de bien, marca, modelo, serie e institucion | Implementado |
-| Reportes | Borrador, proveedor principal, equipo medico y datos tecnicos | Implementado |
+| Reportes | Borrador individual o por lote, proveedor, equipos y datos tecnicos | Implementado |
 | PDF | Vista previa, generacion final, hash, tamano y versiones | Implementado |
 | Consulta | Codigo, estado, vista resumen y apertura del PDF | Implementado |
 
@@ -44,6 +45,8 @@ roles ni tablas, y no recibe acceso directo a la auditoria.
 - Consultas parametrizadas y validacion de entradas.
 - Validacion conjunta de usuario, rol, computadora autorizada e institucion del
   equipo medico.
+- Contrasena inicial temporal, cambio obligatorio y administracion de usuarios
+  limitada al rol `administrador`.
 
 ## Almacenamiento
 
@@ -53,7 +56,8 @@ entorno. PostgreSQL conserva clave del objeto, hash, tamano, estado y versiones.
 
 ## Pruebas
 
-- Doce pruebas automatizadas de seguridad, PDF y almacenamiento aprobadas.
+- Diecisiete pruebas automatizadas de seguridad, PDF, almacenamiento, lotes y politica de
+  contrasenas aprobadas.
 - Casos SQL, roles, triggers, procedimientos y flujo API documentados en
   `docs/casos-prueba/casos-prueba-iniciales.md`.
 - `npm run test:db` aprobo esquema y permisos despues de las migraciones 002 y 003.
@@ -62,7 +66,7 @@ entorno. PostgreSQL conserva clave del objeto, hash, tamano, estado y versiones.
 
 ## Pendientes para Entrega 4
 
-- Administracion web de usuarios y computadoras autorizadas.
+- Administracion web de computadoras autorizadas.
 - Edicion completa de borradores y asignacion visual de tecnicos.
 - Carga administrada de logotipos en el Bucket.
 - Filtros web adicionales por fecha, tecnico, servicio e institucion.

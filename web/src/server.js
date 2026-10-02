@@ -7,6 +7,8 @@ const helmet = require("helmet");
 const { Pool } = require("pg");
 const { generateReportPdf } = require("./pdf-report");
 const { deletePdf, getPdf, putPdf } = require("./storage");
+const { validateEquipmentIds } = require("./report-batch");
+const { validatePassword } = require("./user-security");
 const {
   clearSessionCookie,
   createSessionCookie,
@@ -41,6 +43,9 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: "Sesion no valida" });
   }
   req.session = session;
+  if (session.debe_cambiar_password && !["/api/cambiar-password", "/api/session"].includes(req.path)) {
+    return res.status(403).json({ error: "Debe cambiar su contrasena antes de continuar", debe_cambiar_password: true });
+  }
   return next();
 }
 
@@ -128,7 +133,8 @@ app.post("/api/login", loginLimiter, asyncHandler(async (req, res) => {
   }
 
   const result = await pool.query(
-    `SELECT u.id_usuario, u.nombre, u.correo, u.password_hash, r.nombre AS rol
+    `SELECT u.id_usuario, u.nombre, u.correo, u.password_hash,
+            u.debe_cambiar_password, r.nombre AS rol
      FROM usuarios u
      INNER JOIN roles r ON r.id_rol = u.id_rol
      WHERE u.correo = $1 AND u.activo = TRUE`,
@@ -146,10 +152,12 @@ app.post("/api/login", loginLimiter, asyncHandler(async (req, res) => {
     nombre: user.nombre,
     correo: user.correo,
     rol: user.rol,
+    debe_cambiar_password: user.debe_cambiar_password,
   }, sessionSecret);
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Set-Cookie", createSessionCookie(token, process.env.NODE_ENV === "production"));
-  res.json({ usuario: { nombre: user.nombre, correo: user.correo, rol: user.rol } });
+  res.json({ usuario: { nombre: user.nombre, correo: user.correo, rol: user.rol,
+    debe_cambiar_password: user.debe_cambiar_password } });
 }));
 
 app.get("/api/session", requireAuth, (req, res) => {
@@ -159,15 +167,131 @@ app.get("/api/session", requireAuth, (req, res) => {
       nombre: req.session.nombre,
       correo: req.session.correo,
       rol: req.session.rol,
+      debe_cambiar_password: req.session.debe_cambiar_password,
     },
   });
 });
+
+app.post("/api/cambiar-password", requireAuth, asyncHandler(async (req, res) => {
+  const actual = typeof req.body.password_actual === "string" ? req.body.password_actual : "";
+  const nueva = validatePassword(req.body.password_nueva, "password_nueva");
+  if (actual === nueva) throw invalidInput("La nueva contrasena debe ser diferente");
+  const result = await pool.query(
+    "SELECT password_hash FROM usuarios WHERE id_usuario=$1 AND activo=TRUE",
+    [req.session.id_usuario]
+  );
+  if (!result.rows[0] || !(await bcrypt.compare(actual, result.rows[0].password_hash))) {
+    return res.status(401).json({ error: "La contrasena actual no es correcta" });
+  }
+  const hash = await bcrypt.hash(nueva, 12);
+  await pool.query(
+    "UPDATE usuarios SET password_hash=$1, debe_cambiar_password=FALSE WHERE id_usuario=$2",
+    [hash, req.session.id_usuario]
+  );
+  const session = { ...req.session, debe_cambiar_password: false };
+  delete session.iat;
+  delete session.exp;
+  const token = signToken(session, sessionSecret);
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Set-Cookie", createSessionCookie(token, process.env.NODE_ENV === "production"));
+  res.json({ ok: true, usuario: session });
+}));
 
 app.post("/api/logout", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Set-Cookie", clearSessionCookie(process.env.NODE_ENV === "production"));
   res.status(204).send();
 });
+
+app.get("/api/roles", requireAuth, requireRole("administrador"), asyncHandler(async (_req, res) => {
+  const result = await pool.query(
+    "SELECT id_rol, nombre, descripcion FROM roles WHERE activo=TRUE ORDER BY id_rol"
+  );
+  res.json(result.rows);
+}));
+
+app.get("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandler(async (_req, res) => {
+  const result = await pool.query(
+    `SELECT u.id_usuario, u.id_rol, u.nombre, u.correo, r.nombre AS rol,
+            u.debe_cambiar_password, u.activo, u.creado_en
+     FROM usuarios u JOIN roles r ON r.id_rol=u.id_rol
+     ORDER BY u.id_usuario DESC`
+  );
+  res.json(result.rows);
+}));
+
+app.post("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const nombre = normalizeText(req.body.nombre, "nombre", 120, true);
+  const correo = normalizeEmail(req.body.correo);
+  if (!correo) throw invalidInput("El correo es obligatorio");
+  const rolId = parseId(req.body.id_rol);
+  if (!rolId) throw invalidInput("El rol es obligatorio");
+  const password = validatePassword(req.body.password_temporal, "password_temporal");
+  const hash = await bcrypt.hash(password, 12);
+  const result = await pool.query(
+    `INSERT INTO usuarios (id_rol,nombre,correo,password_hash,debe_cambiar_password,activo)
+     SELECT id_rol,$1,$2,$3,TRUE,TRUE FROM roles WHERE id_rol=$4 AND activo=TRUE
+     RETURNING id_usuario,nombre,correo,debe_cambiar_password,activo`,
+    [nombre, correo.toLowerCase(), hash, rolId]
+  );
+  if (!result.rows[0]) throw invalidInput("El rol seleccionado no existe");
+  res.status(201).json(result.rows[0]);
+}));
+
+app.put("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  const rolId = parseId(req.body.id_rol);
+  if (!id || !rolId) throw invalidInput("Usuario o rol invalido");
+  const nombre = normalizeText(req.body.nombre, "nombre", 120, true);
+  const correo = normalizeEmail(req.body.correo);
+  if (!correo) throw invalidInput("El correo es obligatorio");
+  const activo = normalizeActive(req.body.activo);
+  if (id === req.session.id_usuario && !activo) throw invalidInput("No puede desactivar su propio usuario");
+  const role = await pool.query("SELECT nombre FROM roles WHERE id_rol=$1 AND activo=TRUE", [rolId]);
+  if (!role.rows[0]) throw invalidInput("El rol seleccionado no existe");
+  if (id === req.session.id_usuario && role.rows[0].nombre !== req.session.rol) {
+    throw invalidInput("No puede cambiar su propio rol");
+  }
+  const temporaryPassword = req.body.password_temporal
+    ? validatePassword(req.body.password_temporal, "password_temporal")
+    : null;
+  if (id === req.session.id_usuario && temporaryPassword) {
+    throw invalidInput("Use la opcion Cambiar mi contrasena");
+  }
+  const temporaryHash = temporaryPassword ? await bcrypt.hash(temporaryPassword, 12) : null;
+  const result = await pool.query(
+    `UPDATE usuarios u SET nombre=$1,correo=$2,id_rol=$3,activo=$4,
+       password_hash=COALESCE($6,password_hash),
+       debe_cambiar_password=CASE WHEN $6::text IS NULL THEN debe_cambiar_password ELSE TRUE END
+     FROM roles r WHERE u.id_usuario=$5 AND r.id_rol=$3 AND r.activo=TRUE
+     RETURNING u.id_usuario,u.nombre,u.correo,u.debe_cambiar_password,u.activo`,
+    [nombre, correo.toLowerCase(), rolId, activo, id, temporaryHash]
+  );
+  if (!result.rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
+  res.json(result.rows[0]);
+}));
+
+app.post("/api/usuarios/:id/restablecer-password", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Usuario invalido");
+  if (id === req.session.id_usuario) throw invalidInput("Use la opcion Cambiar mi contrasena");
+  const password = validatePassword(req.body.password_temporal, "password_temporal");
+  const hash = await bcrypt.hash(password, 12);
+  const result = await pool.query(
+    `UPDATE usuarios SET password_hash=$1,debe_cambiar_password=TRUE
+     WHERE id_usuario=$2 RETURNING id_usuario`, [hash, id]
+  );
+  if (!result.rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
+  res.json({ ok: true });
+}));
+
+app.delete("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Usuario invalido");
+  if (id === req.session.id_usuario) throw invalidInput("No puede desactivar su propio usuario");
+  await pool.query("UPDATE usuarios SET activo=FALSE WHERE id_usuario=$1", [id]);
+  res.status(204).send();
+}));
 
 app.get("/api/servicios-solicitantes", requireAuth, asyncHandler(async (_req, res) => {
   const result = await pool.query(
@@ -443,8 +567,8 @@ app.get("/api/reportes/catalogos", requireAuth, asyncHandler(async (_req, res) =
       FROM servicios_solicitantes ss JOIN instituciones i ON i.id_institucion=ss.id_institucion
       WHERE ss.activo=TRUE AND i.activo=TRUE ORDER BY i.nombre, ss.nombre`),
     pool.query("SELECT id_proveedor AS id, nombre FROM proveedores WHERE activo=TRUE ORDER BY nombre"),
-    pool.query(`SELECT id_equipo_medico AS id, id_institucion,
-      nombre || COALESCE(' - Bien ' || numero_bien, '') AS nombre
+    pool.query(`SELECT id_equipo_medico AS id, id_institucion, nombre,
+      numero_bien, numero_serie, marca, modelo
       FROM equipos_medicos WHERE activo=TRUE ORDER BY nombre`),
   ]);
   res.json({ servicios: servicios.rows, proveedores: proveedores.rows, equipos_medicos: equiposMedicos.rows });
@@ -469,10 +593,12 @@ app.get("/api/reportes", requireAuth, asyncHandler(async (req, res) => {
 app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
   const servicioId = parseId(req.body.id_servicio_solicitante);
   const proveedorId = parseId(req.body.id_proveedor_plantilla);
-  const equipoMedicoId = parseId(req.body.id_equipo_medico);
+  const isBatch = Array.isArray(req.body.id_equipos_medicos);
+  const equipoMedicoIds = isBatch
+    ? validateEquipmentIds(req.body.id_equipos_medicos)
+    : validateEquipmentIds([req.body.id_equipo_medico]);
   if (!servicioId) throw invalidInput("Servicio invalido");
   if (!proveedorId) throw invalidInput("Proveedor principal invalido");
-  if (!equipoMedicoId) throw invalidInput("Equipo medico invalido");
   const equipo = process.env.AUTHORIZED_DEVICE_ID || (process.env.NODE_ENV !== "production" ? "MEDI-GEN-001" : "");
   if (!equipo) throw new Error("AUTHORIZED_DEVICE_ID es obligatorio en produccion");
   const titulo = normalizeText(req.body.titulo, "titulo", 180, true);
@@ -488,37 +614,41 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query(
-      `INSERT INTO reportes (
-         codigo_reporte, id_servicio_solicitante, id_equipo_medico, id_proveedor_plantilla,
-         id_usuario_creador, id_equipo_autorizado, titulo, descripcion, fecha_reporte,
-         numero_pedido_nog, descripcion_equipo, marca, modelo, numero_serie,
-         numero_bien, tipo_servicio, especificaciones_tecnicas, recomendaciones
-       )
-       SELECT generar_codigo_reporte(), $1, $2, $3, $4, e.id_equipo_autorizado,
-         $5, $6, $7, $8, em.nombre, em.marca, em.modelo, em.numero_serie,
-         em.numero_bien, $9, $10, $11
-       FROM equipos_autorizados e
-       JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante=$1 AND ss.activo=TRUE
-       JOIN instituciones i ON i.id_institucion=ss.id_institucion AND i.activo=TRUE
-       JOIN proveedores p ON p.id_proveedor=$3 AND p.activo=TRUE
-       JOIN equipos_medicos em ON em.id_equipo_medico=$2 AND em.activo=TRUE
-         AND em.id_institucion=ss.id_institucion
-       WHERE e.identificador_equipo=$12 AND e.activo=TRUE
-       RETURNING id_reporte, codigo_reporte, estado`,
-      [servicioId, equipoMedicoId, proveedorId, req.session.id_usuario,
-        titulo, descripcion, fecha, pedido, tipo, especificaciones, recomendaciones, equipo]
-    );
-    if (!result.rows[0]) {
-      await client.query("ROLLBACK");
-      return res.status(403).json({ error: "Servicio, proveedor o equipo no autorizado" });
+    const created = [];
+    for (const equipoMedicoId of equipoMedicoIds) {
+      const result = await client.query(
+        `INSERT INTO reportes (
+           codigo_reporte, id_servicio_solicitante, id_equipo_medico, id_proveedor_plantilla,
+           id_usuario_creador, id_equipo_autorizado, titulo, descripcion, fecha_reporte,
+           numero_pedido_nog, descripcion_equipo, marca, modelo, numero_serie,
+           numero_bien, tipo_servicio, especificaciones_tecnicas, recomendaciones
+         )
+         SELECT generar_codigo_reporte(), $1, $2, $3, $4, e.id_equipo_autorizado,
+           $5, $6, $7, $8, em.nombre, em.marca, em.modelo, em.numero_serie,
+           em.numero_bien, $9, $10, $11
+         FROM equipos_autorizados e
+         JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante=$1 AND ss.activo=TRUE
+         JOIN instituciones i ON i.id_institucion=ss.id_institucion AND i.activo=TRUE
+         JOIN proveedores p ON p.id_proveedor=$3 AND p.activo=TRUE
+         JOIN equipos_medicos em ON em.id_equipo_medico=$2 AND em.activo=TRUE
+           AND em.id_institucion=ss.id_institucion
+         WHERE e.identificador_equipo=$12 AND e.activo=TRUE
+         RETURNING id_reporte, codigo_reporte, estado`,
+        [servicioId, equipoMedicoId, proveedorId, req.session.id_usuario,
+          titulo, descripcion, fecha, pedido, tipo, especificaciones, recomendaciones, equipo]
+      );
+      if (!result.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({ error: "Todos los equipos deben pertenecer a la institucion del servicio" });
+      }
+      await client.query(
+        "INSERT INTO reporte_proveedor (id_reporte, id_proveedor, observacion) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",
+        [result.rows[0].id_reporte, proveedorId, "Proveedor principal de la plantilla"]
+      );
+      created.push(result.rows[0]);
     }
-    await client.query(
-      "INSERT INTO reporte_proveedor (id_reporte, id_proveedor, observacion) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",
-      [result.rows[0].id_reporte, proveedorId, "Proveedor principal de la plantilla"]
-    );
     await client.query("COMMIT");
-    return res.status(201).json(result.rows[0]);
+    return res.status(201).json(isBatch ? { reportes: created } : created[0]);
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

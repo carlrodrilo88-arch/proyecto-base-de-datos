@@ -10,8 +10,8 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('consulta', 'Puede buscar y visualizar reportes autorizados')
 ON CONFLICT (nombre) DO NOTHING;
 
-INSERT INTO usuarios (id_rol, nombre, correo, password_hash)
-SELECT r.id_rol, v.nombre, v.correo, v.password_hash
+INSERT INTO usuarios (id_rol, nombre, correo, password_hash, debe_cambiar_password)
+SELECT r.id_rol, v.nombre, v.correo, v.password_hash, TRUE
 FROM (
     VALUES
         ('administrador', 'Administrador Meditec', 'admin@meditec.local',

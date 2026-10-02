@@ -22,6 +22,7 @@ CREATE TABLE usuarios (
     nombre VARCHAR(120) NOT NULL,
     correo VARCHAR(160) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    debe_cambiar_password BOOLEAN NOT NULL DEFAULT TRUE,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_usuarios_roles

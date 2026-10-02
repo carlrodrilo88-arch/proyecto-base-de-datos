@@ -64,6 +64,8 @@ Funciones principales:
 - Crear tokens firmados con expiracion de una hora.
 - Entregar la sesion mediante una cookie `HttpOnly` y `SameSite=Strict`.
 - Proteger rutas CRUD mediante autenticacion y autorizacion por rol.
+- Administrar usuarios desde la web solo con rol `administrador`.
+- Exigir el cambio de la contrasena temporal y renovar la sesion al completarlo.
 - Validar entradas y limitar solicitudes JSON.
 - Exponer `/api/health` para comprobar conexion con la base de datos.
 - Exponer rutas CRUD para `servicios_solicitantes`.
@@ -72,6 +74,8 @@ Funciones principales:
 - Exponer rutas CRUD para `equipos_medicos` sin confundirlos con las
   computadoras de `equipos_autorizados`.
 - Crear y consultar reportes con filtros por codigo y estado.
+- Crear varios borradores en una transaccion reutilizando los datos tecnicos y
+  asignando un equipo distinto a cada reporte.
 - Validar que el equipo que crea o carga un reporte este activo y autorizado.
 - Asociar una version PDF y publicar el reporte mediante procedimientos SQL.
 - Seleccionar un proveedor principal para aplicar su identidad al reporte.
@@ -89,6 +93,11 @@ secreto de al menos 32 caracteres y agrega el atributo `Secure` a la cookie.
 Contiene pruebas unitarias para tokens validos, vencidos o alterados, secretos
 de produccion, bcrypt y cookies de sesion.
 
+### `src/user-security.js` y `src/user-security.test.js`
+
+Validan que las contrasenas tengan entre 10 y 128 caracteres e incluyan letras
+y numeros. Las pruebas cubren valores validos, cortos y sin combinacion.
+
 ### `src/pdf-report.js`
 
 Genera el PDF con los datos tecnicos, la institucion obtenida desde el servicio
@@ -103,6 +112,11 @@ S3 privado cuando `STORAGE_DRIVER=s3` en Railway.
 
 Comprueba la generacion PDF, lectura y escritura local, y el rechazo de claves
 de almacenamiento peligrosas.
+
+### `src/report-batch.js` y `src/report-batch.test.js`
+
+Validan los identificadores del lote, rechazan equipos repetidos y limitan cada
+operacion a un maximo de 50 reportes.
 
 ## Carpeta `public/`
 
@@ -130,6 +144,8 @@ Funciones principales:
 - Recuperar la sesion actual mediante `/api/session`.
 - Cerrar la sesion mediante `/api/logout` sin acceder al token desde JavaScript.
 - Mostrar el nombre y rol del usuario autenticado.
+- Mostrar la administracion de usuarios exclusivamente al administrador.
+- Crear usuarios con rol y contrasena temporal, y exigir su cambio inicial.
 - Cambiar entre secciones de la aplicacion.
 - Listar servicios solicitantes desde PostgreSQL.
 - Crear, editar y desactivar servicios solicitantes.
@@ -137,6 +153,8 @@ Funciones principales:
 - Crear, editar y desactivar tecnicos.
 - Listar, crear, editar y desactivar instituciones y proveedores.
 - Crear reportes usando el usuario autenticado y un equipo autorizado.
+- Buscar equipos por nombre, numero de bien o serie, agregarlos sin duplicados y
+  crear un borrador independiente para cada equipo seleccionado.
 - Registrar la referencia del PDF, publicar y filtrar reportes.
 - No solicitar manualmente el peso del PDF; mientras se use una ruta simulada se
   guarda como nulo y la futura carga real lo obtendra de `File.size`.

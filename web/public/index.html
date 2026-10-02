@@ -46,6 +46,8 @@
             <button class="nav-button" data-module="proveedores">Proveedores</button>
             <button class="nav-button" data-module="equipos_medicos">Equipos medicos</button>
             <button class="nav-button" data-module="reportes">Reportes</button>
+            <button id="usersNav" class="nav-button hidden" data-module="usuarios">Usuarios</button>
+            <button class="nav-button" data-module="password">Cambiar mi contrasena</button>
           </nav>
           <button id="logoutButton" class="secondary">Salir</button>
         </aside>
@@ -72,6 +74,8 @@
               <input name="marca" class="hidden" placeholder="Marca">
               <input name="modelo" class="hidden" placeholder="Modelo">
               <input name="numero_serie" class="hidden" placeholder="Numero de serie">
+              <select name="id_rol" class="hidden"></select>
+              <input name="password_temporal" type="password" class="hidden" placeholder="Contrasena temporal">
               <label class="check">
                 <input name="activo" type="checkbox" checked>
                 Activo
@@ -93,7 +97,12 @@
               <input name="titulo" placeholder="Titulo del reporte" required>
               <input name="fecha_reporte" type="date" required>
               <select name="id_servicio_solicitante" required></select>
-              <select name="id_equipo_medico" required></select>
+              <div class="equipment-picker">
+                <input id="equipmentSearch" type="search"
+                  placeholder="Buscar por equipo, numero de bien o serie" autocomplete="off">
+                <div id="equipmentSuggestions" class="equipment-suggestions hidden"></div>
+                <div id="selectedEquipmentList" class="selected-equipment-list"></div>
+              </div>
               <select name="id_proveedor_plantilla" required></select>
               <input name="numero_pedido_nog" placeholder="Numero de pedido y NOG">
               <select name="tipo_servicio" required>
@@ -125,6 +134,21 @@
                 <tbody id="reportTableBody"></tbody>
               </table>
             </div>
+          </div>
+          <div id="passwordPanel" class="hidden">
+            <form id="passwordForm" class="panel password-form">
+              <p id="passwordNotice">Actualice su contrasena personal.</p>
+              <label>Contrasena actual
+                <input name="password_actual" type="password" autocomplete="current-password" required>
+              </label>
+              <label>Nueva contrasena
+                <input name="password_nueva" type="password" minlength="10" autocomplete="new-password" required>
+              </label>
+              <label>Confirmar nueva contrasena
+                <input name="password_confirmacion" type="password" minlength="10" autocomplete="new-password" required>
+              </label>
+              <button type="submit">Guardar nueva contrasena</button>
+            </form>
           </div>
           <p id="appMessage" class="message"></p>
         </section>

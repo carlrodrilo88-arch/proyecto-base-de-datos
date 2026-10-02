@@ -25,12 +25,13 @@ TO meditec_web;
 
 -- La aplicacion implementa autorizacion por rol; la cuenta tecnica no elimina
 -- filas y solo puede escribir en los catalogos y documentos publicados en la web.
-GRANT INSERT, UPDATE ON servicios_solicitantes, tecnicos, instituciones,
+GRANT INSERT, UPDATE ON usuarios, servicios_solicitantes, tecnicos, instituciones,
     proveedores, equipos_medicos, reportes, archivos_pdf
 TO meditec_web;
 GRANT INSERT ON reporte_proveedor TO meditec_web;
 GRANT USAGE, SELECT ON SEQUENCE
     servicios_solicitantes_id_servicio_solicitante_seq,
+    usuarios_id_usuario_seq,
     tecnicos_id_tecnico_seq,
     instituciones_id_institucion_seq,
     proveedores_id_proveedor_seq,

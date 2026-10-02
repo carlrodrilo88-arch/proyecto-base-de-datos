@@ -12,10 +12,17 @@ const clearButton = document.querySelector("#clearButton");
 const logoutButton = document.querySelector("#logoutButton");
 const catalogPanel = document.querySelector("#catalogPanel");
 const reportsPanel = document.querySelector("#reportsPanel");
+const passwordPanel = document.querySelector("#passwordPanel");
+const passwordForm = document.querySelector("#passwordForm");
+const passwordNotice = document.querySelector("#passwordNotice");
+const usersNav = document.querySelector("#usersNav");
 const reportForm = document.querySelector("#reportForm");
 const reportFilterForm = document.querySelector("#reportFilterForm");
 const reportTableHead = document.querySelector("#reportTableHead");
 const reportTableBody = document.querySelector("#reportTableBody");
+const equipmentSearch = document.querySelector("#equipmentSearch");
+const equipmentSuggestions = document.querySelector("#equipmentSuggestions");
+const selectedEquipmentList = document.querySelector("#selectedEquipmentList");
 
 const modules = {
   servicios: {
@@ -54,11 +61,18 @@ const modules = {
     id: "id_equipo_medico",
     columns: ["id_equipo_medico", "nombre", "institucion", "numero_bien", "marca", "modelo", "numero_serie", "activo"],
   },
+  usuarios: {
+    title: "Usuarios y permisos",
+    endpoint: "/api/usuarios",
+    id: "id_usuario",
+    columns: ["id_usuario", "nombre", "correo", "rol", "debe_cambiar_password", "activo"],
+  },
 };
 
 let activeModule = "servicios";
 let currentUser = null;
 let reportCatalogs = null;
+let selectedEquipmentIds = [];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -67,6 +81,58 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function normalizeSearch(value) {
+  return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function equipmentLabel(item) {
+  const details = [
+    item.numero_bien ? `Bien: ${item.numero_bien}` : null,
+    item.numero_serie ? `Serie: ${item.numero_serie}` : null,
+    [item.marca, item.modelo].filter(Boolean).join(" ") || null,
+  ].filter(Boolean);
+  return `${item.nombre}${details.length ? ` - ${details.join(" | ")}` : ""}`;
+}
+
+function equipmentForSelectedService() {
+  const service = reportCatalogs?.servicios.find(
+    (item) => String(item.id) === reportForm.elements.id_servicio_solicitante.value
+  );
+  return service
+    ? reportCatalogs.equipos_medicos.filter(
+      (item) => String(item.id_institucion) === String(service.id_institucion)
+    )
+    : [];
+}
+
+function renderSelectedEquipment() {
+  const rows = equipmentForSelectedService().filter((item) => selectedEquipmentIds.includes(String(item.id)));
+  selectedEquipmentList.innerHTML = rows.map((item) => `
+    <div class="selected-equipment">
+      <span>${escapeHtml(equipmentLabel(item))}</span>
+      <button type="button" class="secondary" data-remove-equipment="${escapeHtml(item.id)}">Quitar</button>
+    </div>`).join("");
+}
+
+function renderEquipmentSuggestions() {
+  const query = normalizeSearch(equipmentSearch.value.trim());
+  if (!query || !reportForm.elements.id_servicio_solicitante.value) {
+    equipmentSuggestions.classList.add("hidden");
+    equipmentSuggestions.innerHTML = "";
+    return;
+  }
+  const matches = equipmentForSelectedService()
+    .filter((item) => !selectedEquipmentIds.includes(String(item.id)))
+    .filter((item) => normalizeSearch([
+      item.nombre, item.numero_bien, item.numero_serie, item.marca, item.modelo,
+    ].join(" ")).includes(query))
+    .slice(0, 10);
+  equipmentSuggestions.innerHTML = matches.length
+    ? matches.map((item) => `<button type="button" data-add-equipment="${escapeHtml(item.id)}">${escapeHtml(equipmentLabel(item))}</button>`).join("")
+    : '<p class="message">No hay coincidencias en esta institucion.</p>';
+  equipmentSuggestions.classList.remove("hidden");
 }
 
 async function api(path, options = {}) {
@@ -91,19 +157,31 @@ function showApp(usuario) {
   loginView.classList.add("hidden");
   appView.classList.remove("hidden");
   userLabel.textContent = `${usuario.nombre} - ${usuario.rol}`;
+  usersNav.classList.toggle("hidden", usuario.rol !== "administrador");
+  if (usuario.debe_cambiar_password) {
+    activeModule = "password";
+    passwordNotice.textContent = "Debe cambiar la contrasena temporal antes de continuar.";
+  }
 }
 
 function resetForm() {
   recordForm.reset();
   recordForm.elements.id.value = "";
   recordForm.elements.activo.checked = true;
+  recordForm.elements.password_temporal.placeholder = "Contrasena temporal";
+  recordForm.elements.password_temporal.required = activeModule === "usuarios";
 }
 
 function configureModule() {
   const isReports = activeModule === "reportes";
-  catalogPanel.classList.toggle("hidden", isReports);
+  const isPassword = activeModule === "password";
+  catalogPanel.classList.toggle("hidden", isReports || isPassword);
   reportsPanel.classList.toggle("hidden", !isReports);
-  if (isReports) {
+  passwordPanel.classList.toggle("hidden", !isPassword);
+  if (isPassword) {
+    moduleTitle.textContent = "Cambiar mi contrasena";
+    document.querySelector("#moduleSubtitle").textContent = "La nueva contrasena debe tener al menos 10 caracteres, letras y numeros";
+  } else if (isReports) {
     moduleTitle.textContent = "Reportes y consulta documental";
     document.querySelector("#moduleSubtitle").textContent = "Creacion, PDF simulado, publicacion y filtros";
     reportForm.classList.toggle("hidden", currentUser?.rol === "consulta");
@@ -114,13 +192,18 @@ function configureModule() {
   const isService = activeModule === "servicios";
   const isProvider = activeModule === "proveedores";
   const isMedicalEquipment = activeModule === "equipos_medicos";
-  recordForm.elements.telefono.classList.toggle("hidden", isService || isMedicalEquipment);
+  const isUsers = activeModule === "usuarios";
+  recordForm.elements.telefono.classList.toggle("hidden", isService || isMedicalEquipment || isUsers);
   recordForm.elements.correo.classList.toggle("hidden", isService || isMedicalEquipment);
-  recordForm.elements.extra.classList.toggle("hidden", isService || isMedicalEquipment);
+  recordForm.elements.extra.classList.toggle("hidden", isService || isMedicalEquipment || isUsers);
   recordForm.elements.id_institucion.classList.toggle("hidden", !(isService || isMedicalEquipment));
   recordForm.elements.id_institucion.required = isService || isMedicalEquipment;
   recordForm.elements.logo_url.classList.toggle("hidden", !isProvider);
   recordForm.elements.pie_pagina.classList.toggle("hidden", !isProvider);
+  recordForm.elements.id_rol.classList.toggle("hidden", !isUsers);
+  recordForm.elements.id_rol.required = isUsers;
+  recordForm.elements.password_temporal.classList.toggle("hidden", !isUsers);
+  recordForm.elements.password_temporal.required = isUsers && !recordForm.elements.id.value;
   for (const field of ["numero_bien", "marca", "modelo", "numero_serie"]) {
     recordForm.elements[field].classList.toggle("hidden", !isMedicalEquipment);
   }
@@ -162,6 +245,12 @@ async function loadRows() {
       .map((item) => `<option value="${escapeHtml(item.id_institucion)}">${escapeHtml(item.nombre)}</option>`)
       .join("");
   }
+  if (activeModule === "usuarios") {
+    const roles = await api("/api/roles");
+    recordForm.elements.id_rol.innerHTML = '<option value="">Seleccione rol</option>' + roles
+      .map((item) => `<option value="${escapeHtml(item.id_rol)}">${escapeHtml(item.nombre)}</option>`)
+      .join("");
+  }
   const rows = await api(config.endpoint);
   renderRows(rows);
 }
@@ -177,14 +266,35 @@ async function loadReportCatalogs() {
   };
   fill("id_servicio_solicitante", data.servicios, "Seleccione servicio");
   fill("id_proveedor_plantilla", data.proveedores, "Seleccione proveedor y formato");
-  fill("id_equipo_medico", [], "Seleccione primero un servicio");
+  selectedEquipmentIds = [];
+  equipmentSearch.value = "";
+  renderSelectedEquipment();
+  renderEquipmentSuggestions();
 }
 
 reportForm.elements.id_servicio_solicitante.addEventListener("change", () => {
-  const service = reportCatalogs?.servicios.find((item) => String(item.id) === reportForm.elements.id_servicio_solicitante.value);
-  const rows = service ? reportCatalogs.equipos_medicos.filter((item) => String(item.id_institucion) === String(service.id_institucion)) : [];
-  reportForm.elements.id_equipo_medico.innerHTML = '<option value="">Seleccione equipo medico</option>' + rows
-    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.nombre)}</option>`).join("");
+  selectedEquipmentIds = [];
+  equipmentSearch.value = "";
+  renderSelectedEquipment();
+  renderEquipmentSuggestions();
+});
+
+equipmentSearch.addEventListener("input", renderEquipmentSuggestions);
+
+equipmentSuggestions.addEventListener("click", (event) => {
+  const id = event.target.dataset.addEquipment;
+  if (!id || selectedEquipmentIds.includes(id)) return;
+  selectedEquipmentIds.push(id);
+  equipmentSearch.value = "";
+  renderSelectedEquipment();
+  renderEquipmentSuggestions();
+});
+
+selectedEquipmentList.addEventListener("click", (event) => {
+  const id = event.target.dataset.removeEquipment;
+  if (!id) return;
+  selectedEquipmentIds = selectedEquipmentIds.filter((item) => item !== id);
+  renderSelectedEquipment();
 });
 
 function renderReports(rows) {
@@ -220,7 +330,7 @@ loginForm.addEventListener("submit", async (event) => {
     if (!result.ok) throw new Error(payload.error);
     showApp(payload.usuario);
     configureModule();
-    await loadRows();
+    if (activeModule !== "password") await loadRows();
   } catch (error) {
     loginMessage.textContent = error.message;
   }
@@ -228,13 +338,17 @@ loginForm.addEventListener("submit", async (event) => {
 
 document.querySelectorAll(".nav-button").forEach((button) => {
   button.addEventListener("click", async () => {
+    if (currentUser?.debe_cambiar_password && button.dataset.module !== "password") {
+      appMessage.textContent = "Debe cambiar la contrasena temporal antes de continuar";
+      return;
+    }
     activeModule = button.dataset.module;
     resetForm();
     configureModule();
     if (activeModule === "reportes") {
       await loadReportCatalogs();
       await loadReports();
-    } else {
+    } else if (activeModule !== "password") {
       await loadRows();
     }
   });
@@ -244,17 +358,23 @@ reportForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   appMessage.textContent = "";
   const values = Object.fromEntries(new FormData(reportForm));
+  if (selectedEquipmentIds.length === 0) {
+    appMessage.textContent = "Seleccione al menos un equipo por nombre, numero de bien o serie";
+    return;
+  }
+  values.id_equipos_medicos = selectedEquipmentIds;
   const previewWindow = window.open("about:blank", "_blank");
   try {
-    const reporte = await api("/api/reportes", {
+    const result = await api("/api/reportes", {
       method: "POST",
       body: JSON.stringify(values),
     });
+    const reportes = result.reportes || [result];
     reportForm.reset();
     await loadReportCatalogs();
     await loadReports();
-    if (previewWindow) previewWindow.location = `/api/reportes/${reporte.id_reporte}/vista-previa`;
-    appMessage.textContent = `Borrador ${reporte.codigo_reporte} creado. Revise la vista previa antes de publicar.`;
+    if (previewWindow && reportes[0]) previewWindow.location = `/api/reportes/${reportes[0].id_reporte}/vista-previa`;
+    appMessage.textContent = `${reportes.length} borrador(es) creado(s): ${reportes.map((item) => item.codigo_reporte).join(", ")}. Revise cada vista previa antes de publicar.`;
   } catch (error) {
     if (previewWindow) previewWindow.close();
     appMessage.textContent = error.message;
@@ -320,6 +440,12 @@ recordForm.addEventListener("submit", async (event) => {
     payload.logo_url = values.logo_url;
     payload.pie_pagina = values.pie_pagina;
   }
+  if (activeModule === "usuarios") {
+    payload.id_rol = values.id_rol;
+    if (values.password_temporal) payload.password_temporal = values.password_temporal;
+    delete payload.telefono;
+    delete payload[config.extraField];
+  }
 
   try {
     await api(id ? `${config.endpoint}/${id}` : config.endpoint, {
@@ -353,6 +479,14 @@ tableBody.addEventListener("click", async (event) => {
     recordForm.elements.marca.value = row.marca || "";
     recordForm.elements.modelo.value = row.modelo || "";
     recordForm.elements.numero_serie.value = row.numero_serie || "";
+    recordForm.elements.id_rol.value = row.id_rol || "";
+    if (activeModule === "usuarios") {
+      const roles = await api("/api/roles");
+      const role = roles.find((item) => item.nombre === row.rol);
+      recordForm.elements.id_rol.value = role?.id_rol || "";
+      recordForm.elements.password_temporal.required = false;
+      recordForm.elements.password_temporal.placeholder = "Use Restablecer para cambiarla";
+    }
     recordForm.elements.activo.checked = row.activo;
   }
 
@@ -364,6 +498,30 @@ tableBody.addEventListener("click", async (event) => {
 
 clearButton.addEventListener("click", resetForm);
 
+passwordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(passwordForm));
+  if (values.password_nueva !== values.password_confirmacion) {
+    appMessage.textContent = "La confirmacion no coincide";
+    return;
+  }
+  try {
+    const result = await api("/api/cambiar-password", {
+      method: "POST",
+      body: JSON.stringify(values),
+    });
+    currentUser = result.usuario;
+    passwordForm.reset();
+    passwordNotice.textContent = "Contrasena actualizada correctamente.";
+    activeModule = "servicios";
+    configureModule();
+    await loadRows();
+    appMessage.textContent = "Contrasena actualizada correctamente";
+  } catch (error) {
+    appMessage.textContent = error.message;
+  }
+});
+
 logoutButton.addEventListener("click", async () => {
   await api("/api/logout", { method: "POST" }).catch(() => null);
   appView.classList.add("hidden");
@@ -374,7 +532,7 @@ api("/api/session")
   .then(async ({ usuario }) => {
     showApp(usuario);
     configureModule();
-    await loadRows();
+    if (activeModule !== "password") await loadRows();
   })
   .catch(() => {
     appView.classList.add("hidden");

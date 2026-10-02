@@ -269,3 +269,35 @@ tres proveedores y cuatro equipos medicos. El reporte `REP-2026-000010` paso de
 borrador a publicado, quedo almacenado como
 `reportes/2026/REP-2026-000010.pdf` y fue recuperado con HTTP 200, tipo
 `application/pdf`, firma `%PDF` y 2441 bytes.
+
+## Casos de administracion de usuarios y contrasena temporal
+
+Estos casos requieren aplicar primero
+`sql/migrations/004_administracion_usuarios.sql`.
+
+| ID | Caso | Resultado esperado | Estado |
+| --- | --- | --- | --- |
+| CP-USR-01 | Administrador crea un usuario | Guarda hash bcrypt, rol y cambio obligatorio | Pendiente de validacion integrada |
+| CP-USR-02 | Usuario consulta abre administracion | API responde 403 y no muestra el modulo | Pendiente de validacion integrada |
+| CP-USR-03 | Usuario entra con contrasena temporal | Solo permite sesion y cambio de contrasena | Pendiente de validacion integrada |
+| CP-USR-04 | Usuario cambia su contrasena | Renueva sesion y habilita los modulos autorizados | Pendiente de validacion integrada |
+| CP-USR-05 | Administrador restablece una contrasena | Nuevo hash y bandera de cambio obligatorio | Pendiente de validacion integrada |
+| CP-USR-06 | Administrador intenta desactivarse o cambiar su rol | Operacion rechazada | Pendiente de validacion integrada |
+
+La politica de longitud y combinacion de caracteres tiene dos pruebas unitarias
+aprobadas. Ninguna ruta devuelve `password_hash` ni contrasenas en texto plano.
+
+## Casos de busqueda de equipos y reportes por lote
+
+| ID | Caso | Resultado esperado | Estado |
+| --- | --- | --- | --- |
+| CP-LOT-01 | Buscar parte del nombre, bien o serie | Muestra hasta diez coincidencias de la institucion | Cubierto por interfaz; validacion visual pendiente |
+| CP-LOT-02 | Agregar dos veces el mismo equipo | No permite duplicarlo en la lista ni en la API | Prueba automatizada aprobada |
+| CP-LOT-03 | Seleccionar varios equipos iguales | Crea un borrador independiente por equipo | Implementado; validacion integrada pendiente |
+| CP-LOT-04 | Reutilizar especificaciones | Copia el contenido comun en todos los borradores | Implementado; validacion integrada pendiente |
+| CP-LOT-05 | Incluir equipo de otra institucion | Revierte el lote completo sin reportes parciales | Garantizado por transaccion; validacion integrada pendiente |
+| CP-LOT-06 | Crear mas de 50 en un lote | Rechaza la solicitud | Prueba automatizada aprobada |
+
+Los reportes mantienen codigos, equipos, numeros de bien, numeros de serie, PDF
+y estados independientes. La publicacion se realiza despues de revisar cada
+vista previa.
