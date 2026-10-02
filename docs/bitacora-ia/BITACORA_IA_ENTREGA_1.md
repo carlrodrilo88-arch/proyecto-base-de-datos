@@ -1,5 +1,96 @@
 # Bitacora de Agentes IA - 
 
+## Registro 16
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 30/09/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Revisar y fortalecer la seguridad de PostgreSQL y de la aplicacion web |
+| Prompt utilizado | Analiza la seguridad actual del proyecto Meditec y aplica los controles necesarios para proteger contrasenas, sesiones, rutas, roles y permisos. Verifica que el usuario tecnico de PostgreSQL tenga solamente los privilegios necesarios y documenta las pruebas realizadas, sin crear el commit todavia |
+| Resultado obtenido | Se reemplazaron contrasenas almacenadas de forma insegura por hashes bcrypt; se implementaron sesiones firmadas con expiracion, cookies HttpOnly y SameSite Strict, cierre de sesion, Helmet, limite de intentos de acceso, validacion de entradas y autorizacion por rol. Tambien se creo el usuario tecnico `meditec_web` sin privilegios CREATEDB ni CREATEROLE, se limitaron sus permisos sobre tablas, secuencias, funciones y procedimientos, y se realizaron pruebas unitarias e integradas de autenticacion, autorizacion y privilegios minimos |
+| Validacion del grupo | El grupo debe comprobar que las credenciales reales permanezcan fuera del repositorio, ejecutar nuevamente los scripts de permisos despues de cada migracion y verificar los accesos de administrador, generador de reportes y consulta antes del despliegue |
+| Estandares aplicados | S2, S3, S4, S7, S8, D1, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 17
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 29/09/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Evitar que la instalacion normal del DDL elimine las tablas y los datos existentes |
+| Prompt utilizado | Revisa si el DDL del proyecto elimina todas las tablas al ejecutarse y determina el riesgo para una base con informacion. Separa cualquier operacion destructiva de la instalacion normal, conserva un procedimiento explicito para reiniciar unicamente ambientes de prueba y actualiza la documentacion correspondiente |
+| Resultado obtenido | Se confirmo que las instrucciones `DROP TABLE` podian eliminar la estructura y la informacion al volver a ejecutar el DDL. Se retiraron esas instrucciones de `sql/ddl/001_schema.sql` y se trasladaron a `sql/reset/001_reset_schema.sql`, incluyendo advertencias sobre su caracter destructivo. El DDL quedo destinado exclusivamente a instalaciones nuevas, mientras que los cambios sobre bases existentes se realizan mediante migraciones versionadas que conservan la informacion |
+| Validacion del grupo | El grupo debe utilizar el script de reinicio unicamente en bases de prueba, revisar siempre la base seleccionada antes de ejecutarlo y aplicar las migraciones versionadas cuando ya existan datos |
+| Estandares aplicados | S1, S2, S3, S4, S7, D1, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 15
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 01/10/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Separar las computadoras autorizadas de los equipos medicos incluidos en los reportes |
+| Prompt utilizado | Se aclaro que los equipos deben registrarse previamente y que al elaborar el PDF solo debe seleccionarse el equipo, conservando numero de bien, marca y modelo como datos del catalogo |
+| Resultado obtenido | Se creo `equipos_medicos` relacionado con instituciones, con nombre, bien, marca, modelo y serie; se agrego CRUD web, filtrado por la institucion del servicio, relacion con reportes y copia historica automatica. `equipos_autorizados` quedo reservado al control de seguridad mediante `AUTHORIZED_DEVICE_ID`. Se agrego una migracion no destructiva, permisos, seed, documentacion y casos de prueba. Las doce pruebas automatizadas continuaron aprobadas |
+| Validacion del grupo | Ejecutar migraciones 002 y 003, reaplicar permisos y validar los cinco casos CP-EQM antes del commit, tag o despliegue en Railway |
+| Estandares aplicados | S2, S3, S4, S7, S8, D1, D3, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 14
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 01/10/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Corregir el flujo de reportes para seleccionar proveedor, revisar una vista previa y almacenar el PDF definitivo de forma persistente |
+| Prompt utilizado | Se solicito que el reporte permitiera seleccionar el proveedor para tomar su formato, visualizar el documento antes de publicarlo, mostrar su ubicacion y preparar el almacenamiento de archivos en Railway |
+| Resultado obtenido | Se agregaron proveedor principal y campos tecnicos al reporte; se implementaron guardado en borrador, vista previa PDF, publicacion con generacion automatica, calculo SHA-256 y tamano, recuperacion del archivo y almacenamiento local o en Railway Bucket mediante S3. Se agregaron PDFKit, el cliente S3, una segunda migracion, documentacion y tres pruebas nuevas. El conjunto de doce pruebas automatizadas finalizo correctamente y npm reporto cero vulnerabilidades |
+| Validacion del grupo | Ejecutar la migracion 002 y reaplicar permisos en PostgreSQL; probar borrador, vista previa, publicacion y descarga; posteriormente configurar y probar el Bucket real en Railway |
+| Estandares aplicados | S2, S3, S4, S7, S8, D1, D2, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 13
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 30/09/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Corregir la relacion entre servicios e instituciones y preparar la identidad visual de los proveedores para los reportes |
+| Prompt utilizado | Se solicito conservar solamente el nombre del servicio solicitante y relacionarlo obligatoriamente con una institucion, agregar logotipo y pie de pagina a cada proveedor, y analizar tres capturas de los reportes actuales |
+| Resultado obtenido | Se normalizo el modelo para que cada servicio pertenezca a una institucion y el reporte obtenga la institucion a traves del servicio; se preparo una migracion que conserva los registros existentes; se agregaron `logo_url` y `pie_pagina` al proveedor; y se ajustaron DDL, seed, vista, consultas, API, interfaz y documentacion. Las tres plantillas comparten numero, fecha, cliente, servicio, datos del equipo, especificaciones, recomendaciones y firmas; pedido/NOG y tipo de servicio son campos variables que deben incorporarse en la siguiente fase del reporte |
+| Validacion del grupo | Aplicar la migracion en `meditec_reportes_pruebas`, ejecutar los casos CP-MIG-01 a CP-MIG-05 y confirmar cual proveedor define la plantilla cuando un reporte tenga mas de un proveedor |
+| Estandares aplicados | S2, S3, S4, S7, D1, D3, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 12
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 30/09/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Completar y validar la seguridad y el flujo web requeridos para la Entrega 3 |
+| Prompt utilizado | Se solicito continuar con el control de seguridad y realizar todo lo posible para dejar lista la Entrega 3, conservando la estructura obligatoria del repositorio y sin crear el commit final |
+| Resultado obtenido | Se reemplazaron las contrasenas de prueba por hashes bcrypt; se implementaron sesiones firmadas de una hora mediante cookie HttpOnly, SameSite Strict y Secure en produccion; se agregaron cierre de sesion, limite de intentos, cabeceras de seguridad, validacion de entradas y autorizacion por rol. Se creo un usuario tecnico PostgreSQL con privilegios minimos, sin permisos CREATEDB ni CREATEROLE. La web quedo integrada con cuatro catalogos y con el flujo de creacion, validacion de equipo autorizado, asociacion de PDF, publicacion y consulta de reportes. Las nueve pruebas unitarias y la prueba integrada contra PostgreSQL 18.4 finalizaron correctamente |
+| Validacion del grupo | El grupo debe revisar visualmente la aplicacion, tomar las capturas requeridas, comprobar que no se incluyan secretos ni archivos ajenos en Git y aprobar la certificacion antes de crear el commit y el tag final |
+| Estandares aplicados | S2, S3, S4, S7, S8, D1, D2, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 11
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 29/09/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Revisar, fortalecer y validar la implementacion SQL avanzada correspondiente a la Entrega 3 |
+| Prompt utilizado | Se solicito actuar como analista de bases de datos, revisar si el DDL eliminaba informacion, identificar indices redundantes, separar el reinicio destructivo de la instalacion normal, implementar historial de archivos PDF, completar procedimientos, triggers, auditoria, roles y permisos, y ejecutar pruebas reales en PostgreSQL antes de realizar el commit |
+| Resultado obtenido | Se separo el reinicio destructivo en `sql/reset/001_reset_schema.sql`; el DDL dejo de eliminar datos; se eliminaron indices redundantes; se implemento una secuencia para generar codigos de reporte; se permitio conservar historial de PDFs con una sola version activa; se agregaron procedimientos de publicacion y reemplazo, triggers de validacion y auditoria, roles reejecutables, consultas y un script automatizado de pruebas. El ciclo completo se ejecuto en PostgreSQL 18.4 sobre la base `meditec_reportes_pruebas`. Las 16 consultas funcionaron, la publicacion sin PDF fue rechazada, los permisos fueron comprobados y el seed pudo repetirse sin duplicar datos. Finalmente se creo el commit `deeba92` con el mensaje `entrega-3: completa y valida implementacion SQL avanzada` |
+| Validacion del grupo | El grupo debe revisar los resultados documentados en `docs/casos-prueba/casos-prueba-iniciales.md`, conservar las evidencias de PostgreSQL, confirmar que el usuario temporal ya no tenga privilegios `CREATEDB` ni `CREATEROLE` y aprobar el commit antes de enviarlo al repositorio remoto |
+| Estandares aplicados | S2, S3, S4, S7, S8, D1, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
 ## Registro 10
 
 | Campo | Detalle |

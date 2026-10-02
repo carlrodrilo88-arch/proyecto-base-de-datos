@@ -39,6 +39,9 @@ sql/
   procedures/       Funciones y procedimientos almacenados
   triggers/         Triggers de auditoria o validacion
   security/         Roles, permisos y politicas
+  queries/          Consultas demostrativas
+  reset/            Reinicio controlado de ambientes de prueba
+  tests/            Validaciones SQL automatizadas
 web/                Codigo de la aplicacion web
 ```
 
@@ -61,6 +64,7 @@ web/                Codigo de la aplicacion web
 1. Un usuario autenticado ingresa al sistema.
 2. Si su rol y equipo estan autorizados, registra o genera un reporte.
 3. El sistema crea un ID unico para el reporte.
-4. El PDF se guarda en el almacenamiento configurado.
-5. Los usuarios autorizados consultan el reporte por ID, servicio solicitante, institucion o
-   fecha.
+4. Se asocia una ruta de PDF y la base conserva el historial de versiones.
+5. El reporte solo puede publicarse cuando existe un PDF activo.
+6. Los usuarios autorizados consultan el reporte por ID, servicio solicitante,
+   institucion o fecha.

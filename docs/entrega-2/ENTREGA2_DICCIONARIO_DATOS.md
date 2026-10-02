@@ -42,10 +42,8 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | Campo                   | Tipo         | Restricciones                       | Descripcion                                       |
 | ----------------------- | ------------ | ----------------------------------- | ------------------------------------------------- |
 | id_servicio_solicitante | BIGSERIAL    | PK                                  | Identificador del servicio solicitante.           |
-| nombre                  | VARCHAR(160) | NOT NULL                            | Nombre de la persona, area o entidad solicitante. |
-| telefono                | VARCHAR(40)  |                                     | Telefono de contacto.                             |
-| correo                  | VARCHAR(160) |                                     | Correo de contacto.                               |
-| direccion               | TEXT         |                                     | Direccion relacionada.                            |
+| id_institucion          | BIGINT       | NOT NULL, FK                        | Institucion a la que pertenece el servicio.       |
+| nombre                  | VARCHAR(160) | NOT NULL                            | Nombre del area o servicio solicitante.           |
 | activo                  | BOOLEAN      | NOT NULL, DEFAULT TRUE              | Indica si sigue vigente.                          |
 | creado_en               | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de registro.                                |
 
@@ -73,6 +71,20 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | activo       | BOOLEAN      | NOT NULL, DEFAULT TRUE              | Indica si puede asignarse a reportes. |
 | creado_en    | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de registro.                    |
 
+## equipos_medicos
+
+| Campo | Tipo | Restricciones | Descripcion |
+| --- | --- | --- | --- |
+| id_equipo_medico | BIGSERIAL | PK | Identificador del activo medico. |
+| id_institucion | BIGINT | NOT NULL, FK | Institucion propietaria o responsable. |
+| nombre | VARCHAR(180) | NOT NULL | Descripcion del equipo. |
+| numero_bien | VARCHAR(100) | UNIQUE por institucion | Numero de inventario o bien. |
+| marca | VARCHAR(100) | | Marca del equipo. |
+| modelo | VARCHAR(100) | | Modelo del equipo. |
+| numero_serie | VARCHAR(100) | | Serie del fabricante. |
+| activo | BOOLEAN | NOT NULL, DEFAULT TRUE | Puede seleccionarse en reportes. |
+| creado_en | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de registro. |
+
 ## proveedores
 
 | Campo        | Tipo         | Restricciones                       | Descripcion                     |
@@ -83,6 +95,8 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | telefono     | VARCHAR(40)  |                                     | Telefono de contacto.           |
 | correo       | VARCHAR(160) |                                     | Correo de contacto.             |
 | direccion    | TEXT         |                                     | Direccion del proveedor.        |
+| logo_url     | TEXT         |                                     | Ruta o URL del logotipo usado en reportes. |
+| pie_pagina   | TEXT         |                                     | Texto institucional para el pie del reporte. |
 | activo       | BOOLEAN      | NOT NULL, DEFAULT TRUE              | Indica si sigue vigente.        |
 | creado_en    | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de registro.              |
 
@@ -93,11 +107,21 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | id_reporte              | BIGSERIAL    | PK                                  | Identificador interno del reporte.             |
 | codigo_reporte          | VARCHAR(40)  | NOT NULL, UNIQUE                    | Codigo unico usado para consulta.              |
 | id_servicio_solicitante | BIGINT       | NOT NULL, FK                        | Servicio solicitante relacionado.              |
-| id_institucion          | BIGINT       | FK                                  | Institucion relacionada, si aplica.            |
+| id_equipo_medico        | BIGINT       | FK                                  | Equipo medico atendido.                         |
+| id_proveedor_plantilla  | BIGINT       | FK                                  | Proveedor que define identidad y formato.       |
 | id_usuario_creador      | BIGINT       | NOT NULL, FK                        | Usuario que registro el reporte.               |
 | id_equipo_autorizado    | BIGINT       | FK                                  | Equipo usado para cargar o generar el reporte. |
 | titulo                  | VARCHAR(180) | NOT NULL                            | Titulo del reporte.                            |
 | descripcion             | TEXT         |                                     | Descripcion general.                           |
+| numero_pedido_nog       | VARCHAR(80)  |                                     | Referencia de pedido o NOG.                    |
+| descripcion_equipo      | VARCHAR(240) |                                     | Equipo atendido.                               |
+| marca                   | VARCHAR(100) |                                     | Marca del equipo.                              |
+| modelo                  | VARCHAR(100) |                                     | Modelo del equipo.                             |
+| numero_serie            | VARCHAR(100) |                                     | Numero de serie.                               |
+| numero_bien             | VARCHAR(100) |                                     | Numero de inventario o bien.                   |
+| tipo_servicio           | VARCHAR(40)  | CHECK                               | Garantia, preventivo, correctivo, emergencia u otros. |
+| especificaciones_tecnicas | TEXT       |                                     | Trabajo y hallazgos tecnicos.                  |
+| recomendaciones         | TEXT         |                                     | Recomendaciones posteriores.                   |
 | fecha_reporte           | DATE         | NOT NULL                            | Fecha del reporte.                             |
 | estado                  | VARCHAR(30)  | NOT NULL, CHECK                     | Estado: borrador, publicado o anulado.         |
 | creado_en               | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de creacion.                             |
@@ -124,7 +148,7 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | Campo          | Tipo         | Restricciones                       | Descripcion                               |
 | -------------- | ------------ | ----------------------------------- | ----------------------------------------- |
 | id_archivo_pdf | BIGSERIAL    | PK                                  | Identificador del archivo PDF.            |
-| id_reporte     | BIGINT       | NOT NULL, UNIQUE, FK                | Reporte asociado.                         |
+| id_reporte     | BIGINT       | NOT NULL, FK                        | Reporte asociado; puede tener historial.  |
 | url_archivo    | TEXT         | NOT NULL                            | Ruta o URL del PDF.                       |
 | hash_archivo   | VARCHAR(128) |                                     | Hash para validar integridad del archivo. |
 | tamano_bytes   | BIGINT       | CHECK                               | Tamano del archivo en bytes.              |
@@ -143,4 +167,3 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | detalle      | TEXT        |                                     | Descripcion del evento.              |
 | ip_origen    | VARCHAR(60) |                                     | IP desde donde se realizo la accion. |
 | fecha_evento | TIMESTAMP   | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha del evento.                    |
-

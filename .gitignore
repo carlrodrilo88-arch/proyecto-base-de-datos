@@ -2,4 +2,6 @@ node_modules/
 web/node_modules/
 .env
 web/.env
+web/storage/
 npm-debug.log*
+/web/nbproject/private/

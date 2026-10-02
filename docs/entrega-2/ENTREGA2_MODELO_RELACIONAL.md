@@ -37,9 +37,11 @@ Registra las computadoras permitidas para generar o cargar reportes PDF.
 
 ### servicios_solicitantes
 
-Registra las personas, areas o entidades que solicitan servicios o reportes.
+Registra las areas o servicios que solicitan reportes dentro de una institucion.
 
 - PK: `id_servicio_solicitante`
+- FK: `id_institucion` referencia `instituciones(id_institucion)`
+- UK compuesta: `id_institucion`, `nombre`
 
 ### instituciones
 
@@ -53,6 +55,15 @@ Registra al personal tecnico que puede participar en reportes.
 
 - PK: `id_tecnico`
 - UK: `correo`
+
+### equipos_medicos
+
+Registra los activos atendidos con institucion, numero de bien, marca, modelo y
+serie.
+
+- PK: `id_equipo_medico`
+- FK: `id_institucion` referencia `instituciones(id_institucion)`
+- UK compuesta: `id_institucion`, `numero_bien`
 
 ### proveedores
 
@@ -68,7 +79,8 @@ Registra el documento principal generado o cargado en el sistema.
 - PK: `id_reporte`
 - UK: `codigo_reporte`
 - FK: `id_servicio_solicitante` referencia `servicios_solicitantes(id_servicio_solicitante)`
-- FK: `id_institucion` referencia `instituciones(id_institucion)`
+- FK: `id_equipo_medico` referencia `equipos_medicos(id_equipo_medico)`
+- FK: `id_proveedor_plantilla` referencia `proveedores(id_proveedor)`
 - FK: `id_usuario_creador` referencia `usuarios(id_usuario)`
 - FK: `id_equipo_autorizado` referencia `equipos_autorizados(id_equipo_autorizado)`
 
@@ -78,7 +90,8 @@ Registra el archivo PDF asociado a cada reporte.
 
 - PK: `id_archivo_pdf`
 - FK: `id_reporte` referencia `reportes(id_reporte)`
-- UK: `id_reporte`, para mantener relacion 1:1 entre reporte y archivo PDF activo.
+- Indice unico parcial sobre `id_reporte` cuando `estado = 'activo'`, para
+  conservar historial y permitir una sola version activa.
 
 ### auditoria_eventos
 
@@ -112,9 +125,11 @@ Resuelve la relacion N:M entre `reportes` y `proveedores`.
 | roles - usuarios                  | 1:N          | `usuarios.id_rol`                  |
 | usuarios - reportes               | 1:N          | `reportes.id_usuario_creador`      |
 | servicios_solicitantes - reportes | 1:N          | `reportes.id_servicio_solicitante` |
-| instituciones - reportes          | 1:N          | `reportes.id_institucion`          |
+| instituciones - servicios         | 1:N          | `servicios_solicitantes.id_institucion` |
+| instituciones - equipos medicos   | 1:N          | `equipos_medicos.id_institucion`   |
+| equipos medicos - reportes        | 1:N          | `reportes.id_equipo_medico`        |
 | equipos_autorizados - reportes    | 1:N          | `reportes.id_equipo_autorizado`    |
-| reportes - archivos_pdf           | 1:1          | `archivos_pdf.id_reporte UNIQUE`   |
+| reportes - archivos_pdf           | 1:N          | Una sola fila puede estar activa   |
 | reportes - tecnicos               | N:M          | `reporte_tecnico`                  |
 | reportes - proveedores            | N:M          | `reporte_proveedor`                |
 | usuarios - auditoria_eventos      | 1:N          | `auditoria_eventos.id_usuario`     |
@@ -124,7 +139,7 @@ Resuelve la relacion N:M entre `reportes` y `proveedores`.
 - Todo reporte debe tener `codigo_reporte` unico.
 - Todo usuario debe pertenecer a un rol existente.
 - Todo reporte debe tener un servicio solicitante y un usuario creador.
-- Un reporte puede tener como maximo un archivo PDF asociado en la tabla `archivos_pdf`.
+- Un reporte puede tener varias versiones en `archivos_pdf`, pero como maximo
+  una con estado `activo`.
 - Las relaciones N:M evitan duplicar tecnicos o proveedores dentro de la tabla `reportes`.
 - Las entidades principales usan `activo` para evitar eliminar historial operativo.
-

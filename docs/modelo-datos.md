@@ -20,13 +20,21 @@ Define el nivel de acceso. Roles sugeridos:
 Registra las computadoras permitidas para generar o cargar reportes. Permite
 cumplir el requisito de limitar esa accion a dos equipos.
 
+### equipos_medicos
+
+Activos sobre los que se realiza el servicio. Se registran una vez con su
+institucion, numero de bien, marca, modelo y serie; el reporte los selecciona y
+conserva una copia historica de esos datos.
+
 ### servicios_solicitantes
 
-Areas, departamentos o contactos que solicitan documentacion o reportes.
+Areas o departamentos que solicitan reportes y pertenecen obligatoriamente a
+una institucion.
 
 ### proveedores
 
-Proveedores asociados a equipos, servicios o informacion administrativa.
+Proveedores asociados a reportes. Guardan su logotipo y texto de pie de pagina
+para personalizar la plantilla documental.
 
 ### tecnicos
 
@@ -52,9 +60,11 @@ Bitacora de acciones relevantes ejecutadas dentro del sistema.
 - Un rol puede tener muchos usuarios.
 - Un usuario puede crear muchos reportes.
 - Un servicio solicitante puede tener muchos reportes.
-- Una institucion puede tener muchos reportes.
+- Una institucion puede registrar muchos equipos medicos.
+- Un equipo medico puede aparecer en muchos reportes.
+- Una institucion puede tener muchos servicios y cada servicio pertenece a una institucion.
 - Un tecnico puede estar asociado a muchos reportes.
-- Un reporte puede tener un PDF asociado.
+- Un reporte puede conservar varias versiones de PDF, con una sola version activa.
 - Un equipo autorizado puede ser usado para registrar o cargar reportes.
 
 ## Reglas de negocio
@@ -84,7 +94,7 @@ Bitacora de acciones relevantes ejecutadas dentro del sistema.
 
 - reportes.codigo_reporte
 - reportes.id_servicio_solicitante
-- reportes.institucion_id
+- servicios_solicitantes.id_institucion
 - reportes.fecha_reporte
 - usuarios.correo
 - equipos_autorizados.identificador_equipo

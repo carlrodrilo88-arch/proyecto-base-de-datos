@@ -51,6 +51,7 @@ sql/triggers/001_reportes.sql
 sql/dml/001_seed.sql
 sql/views/001_reportes_resumen.sql
 sql/security/001_roles_permisos.sql
+sql/security/002_usuario_web.sql
 sql/queries/001_consultas_entrega3.sql
 ```
 

@@ -150,20 +150,44 @@ Los archivos que deben servir como base tecnica para esta entrega son:
 
 - `sql/ddl/001_schema.sql`
 - `sql/dml/001_seed.sql`
+- `sql/queries/001_consultas_entrega3.sql`
 - `sql/views/001_reportes_resumen.sql`
 - `sql/procedures/001_reportes.sql`
 - `sql/triggers/001_reportes.sql`
 - `sql/security/001_roles_permisos.sql`
+- `sql/security/002_usuario_web.sql`
+- `sql/reset/001_reset_schema.sql`
+- `sql/tests/001_validacion_entrega3.sql`
+- `docs/entrega-3/DATOS_Y_CONSULTAS_ENTREGA3.md`
+- `docs/bitacora-ia/BITACORA_IA_ENTREGA_1.md`
 - `docs/casos-prueba/casos-prueba-iniciales.md`
 - `web/src/server.js`
 - `web/public/app.js`
 
-## Pendientes recomendados
+## Estado tecnico despues de la revision del DDL
 
-- Crear un archivo de consultas principales para Entrega 3.
-- Ampliar los datos de prueba con reportes, archivos PDF simulados y relaciones
-  con tecnicos/proveedores.
-- Completar triggers de auditoria y validacion de publicacion.
-- Revisar permisos ejecutando los scripts en PostgreSQL.
-- Documentar resultados de pruebas SQL.
-- Registrar el avance en la bitacora IA cuando se realicen cambios.
+- El DDL de instalacion ya no elimina tablas ni datos.
+- El reinicio destructivo se traslado a un script separado y advertido.
+- Se eliminaron los indices duplicados que ya estaban cubiertos por
+  restricciones `UNIQUE`.
+- Los archivos PDF conservan historial y un indice unico parcial garantiza una
+  sola version activa por reporte.
+- La generacion de codigos usa una secuencia en lugar de `MAX(id_reporte) + 1`.
+- Los triggers controlan publicacion, fecha de actualizacion y auditoria.
+- Los roles PostgreSQL pueden crearse nuevamente sin error si ya existen.
+
+## Validacion completada
+
+- El conjunto completo se ejecuto en PostgreSQL 18.4.
+- El seed se repitio sin duplicar datos.
+- `sql/tests/001_validacion_entrega3.sql` finalizo correctamente.
+- Las consultas por codigo y estado utilizaron sus indices.
+- La aplicacion se valido con bcrypt, cookies protegidas y autorizacion por rol.
+- El usuario tecnico `meditec_web` no puede crear tablas, bases ni roles.
+- El flujo reporte, equipo autorizado, PDF, publicacion y consulta fue probado.
+
+## Pendientes de cierre
+
+- Incorporar capturas seleccionadas como evidencia, si el grupo lo requiere.
+- Revisar la certificacion de calidad y crear el tag solo despues de aprobar el
+  commit final de Entrega 3.

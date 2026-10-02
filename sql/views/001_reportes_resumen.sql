@@ -7,6 +7,7 @@ SELECT
     r.estado,
     ss.nombre AS servicio_solicitante,
     i.nombre AS institucion,
+    pp.nombre AS proveedor_plantilla,
     STRING_AGG(DISTINCT t.nombre, ', ') AS tecnicos,
     STRING_AGG(DISTINCT p.nombre, ', ') AS proveedores,
     u.nombre AS usuario_creador,
@@ -15,8 +16,10 @@ SELECT
 FROM reportes r
 JOIN servicios_solicitantes ss
     ON ss.id_servicio_solicitante = r.id_servicio_solicitante
-LEFT JOIN instituciones i
-    ON i.id_institucion = r.id_institucion
+JOIN instituciones i
+    ON i.id_institucion = ss.id_institucion
+LEFT JOIN proveedores pp
+    ON pp.id_proveedor = r.id_proveedor_plantilla
 LEFT JOIN reporte_tecnico rt
     ON rt.id_reporte = r.id_reporte
 LEFT JOIN tecnicos t
@@ -38,6 +41,7 @@ GROUP BY
     r.estado,
     ss.nombre,
     i.nombre,
+    pp.nombre,
     u.nombre,
     ap.url_archivo,
     r.creado_en;

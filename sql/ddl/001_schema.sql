@@ -40,16 +40,6 @@ CREATE TABLE equipos_autorizados (
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE servicios_solicitantes (
-    id_servicio_solicitante BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(160) NOT NULL,
-    telefono VARCHAR(40),
-    correo VARCHAR(160),
-    direccion TEXT,
-    activo BOOLEAN NOT NULL DEFAULT TRUE,
-    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE instituciones (
     id_institucion BIGSERIAL PRIMARY KEY,
     nombre VARCHAR(160) NOT NULL,
@@ -58,6 +48,37 @@ CREATE TABLE instituciones (
     correo VARCHAR(160),
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE servicios_solicitantes (
+    id_servicio_solicitante BIGSERIAL PRIMARY KEY,
+    id_institucion BIGINT NOT NULL,
+    nombre VARCHAR(160) NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_servicios_solicitantes_instituciones
+        FOREIGN KEY (id_institucion)
+        REFERENCES instituciones(id_institucion)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    CONSTRAINT uq_servicio_nombre_por_institucion
+        UNIQUE (id_institucion, nombre)
+);
+
+CREATE TABLE equipos_medicos (
+    id_equipo_medico BIGSERIAL PRIMARY KEY,
+    id_institucion BIGINT NOT NULL,
+    nombre VARCHAR(180) NOT NULL,
+    numero_bien VARCHAR(100),
+    marca VARCHAR(100),
+    modelo VARCHAR(100),
+    numero_serie VARCHAR(100),
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_equipos_medicos_instituciones
+        FOREIGN KEY (id_institucion) REFERENCES instituciones(id_institucion)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT uq_equipo_bien_institucion UNIQUE (id_institucion, numero_bien)
 );
 
 CREATE TABLE tecnicos (
@@ -77,6 +98,8 @@ CREATE TABLE proveedores (
     telefono VARCHAR(40),
     correo VARCHAR(160),
     direccion TEXT,
+    logo_url TEXT,
+    pie_pagina TEXT,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -85,11 +108,21 @@ CREATE TABLE reportes (
     id_reporte BIGSERIAL PRIMARY KEY,
     codigo_reporte VARCHAR(40) NOT NULL UNIQUE,
     id_servicio_solicitante BIGINT NOT NULL,
-    id_institucion BIGINT,
+    id_equipo_medico BIGINT,
+    id_proveedor_plantilla BIGINT,
     id_usuario_creador BIGINT NOT NULL,
     id_equipo_autorizado BIGINT,
     titulo VARCHAR(180) NOT NULL,
     descripcion TEXT,
+    numero_pedido_nog VARCHAR(80),
+    descripcion_equipo VARCHAR(240),
+    marca VARCHAR(100),
+    modelo VARCHAR(100),
+    numero_serie VARCHAR(100),
+    numero_bien VARCHAR(100),
+    tipo_servicio VARCHAR(40),
+    especificaciones_tecnicas TEXT,
+    recomendaciones TEXT,
     fecha_reporte DATE NOT NULL,
     estado VARCHAR(30) NOT NULL DEFAULT 'borrador',
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -101,11 +134,19 @@ CREATE TABLE reportes (
         REFERENCES servicios_solicitantes(id_servicio_solicitante)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
-    CONSTRAINT fk_reportes_instituciones
-        FOREIGN KEY (id_institucion)
-        REFERENCES instituciones(id_institucion)
+    CONSTRAINT fk_reportes_proveedor_plantilla
+        FOREIGN KEY (id_proveedor_plantilla)
+        REFERENCES proveedores(id_proveedor)
         ON UPDATE CASCADE
-        ON DELETE SET NULL,
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_reportes_equipo_medico
+        FOREIGN KEY (id_equipo_medico)
+        REFERENCES equipos_medicos(id_equipo_medico)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    CONSTRAINT chk_reportes_tipo_servicio
+        CHECK (tipo_servicio IS NULL OR tipo_servicio IN
+            ('garantia', 'preventivo', 'correctivo', 'emergencia', 'otros')),
     CONSTRAINT fk_reportes_usuarios
         FOREIGN KEY (id_usuario_creador)
         REFERENCES usuarios(id_usuario)
@@ -188,7 +229,6 @@ CREATE TABLE auditoria_eventos (
 );
 
 CREATE INDEX idx_reportes_servicio ON reportes(id_servicio_solicitante);
-CREATE INDEX idx_reportes_institucion ON reportes(id_institucion);
 CREATE INDEX idx_reportes_fecha ON reportes(fecha_reporte);
 CREATE INDEX idx_reportes_estado ON reportes(estado);
 CREATE UNIQUE INDEX uq_archivo_pdf_activo_por_reporte

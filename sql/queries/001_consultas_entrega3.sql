@@ -101,7 +101,8 @@ SELECT
     COALESCE(i.nombre, 'Sin institucion') AS institucion,
     COUNT(*) AS cantidad_reportes
 FROM reportes r
-LEFT JOIN instituciones i ON i.id_institucion = r.id_institucion
+JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante = r.id_servicio_solicitante
+JOIN instituciones i ON i.id_institucion = ss.id_institucion
 GROUP BY i.nombre
 ORDER BY cantidad_reportes DESC, institucion;
 

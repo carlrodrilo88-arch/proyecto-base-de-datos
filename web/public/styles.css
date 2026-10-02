@@ -23,7 +23,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -109,13 +111,20 @@ label {
   font-size: 14px;
 }
 
-input {
+input,
+select,
+textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 10px;
   color: var(--ink);
   background: #ffffff;
+}
+
+textarea {
+  min-height: 88px;
+  resize: vertical;
 }
 
 .app {
@@ -230,6 +239,25 @@ td.actions {
   color: var(--danger);
 }
 
+.report-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.filters input,
+.filters select {
+  max-width: 260px;
+}
+
 .hidden {
   display: none;
 }
@@ -247,5 +275,12 @@ td.actions {
   .toolbar {
     grid-template-columns: 1fr;
   }
-}
 
+  .report-form {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+}

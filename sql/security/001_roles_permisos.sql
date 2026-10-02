@@ -25,10 +25,10 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO meditec_admin;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO meditec_admin;
 GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO meditec_admin;
 
-GRANT SELECT ON servicios_solicitantes, proveedores, tecnicos, instituciones,
+GRANT SELECT ON servicios_solicitantes, proveedores, tecnicos, instituciones, equipos_medicos,
     reportes, archivos_pdf, reporte_tecnico, reporte_proveedor TO meditec_generador;
 GRANT INSERT, UPDATE ON servicios_solicitantes, proveedores, tecnicos,
-    instituciones, reportes, archivos_pdf, reporte_tecnico, reporte_proveedor
+    instituciones, equipos_medicos, reportes, archivos_pdf, reporte_tecnico, reporte_proveedor
     TO meditec_generador;
 GRANT INSERT ON auditoria_eventos TO meditec_generador;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO meditec_generador;

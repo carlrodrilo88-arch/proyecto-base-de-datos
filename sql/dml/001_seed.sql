@@ -15,11 +15,11 @@ SELECT r.id_rol, v.nombre, v.correo, v.password_hash
 FROM (
     VALUES
         ('administrador', 'Administrador Meditec', 'admin@meditec.local',
-         '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'),
+         '$2b$12$lDVGawQEi9GKWL0coD7F5OitpC/rgCQZoo4pAz9P4PN9z9JgAljia'),
         ('generador_reportes', 'Generador Meditec', 'generador@meditec.local',
-         '8f25b29935083ee7696b45d84fdbf926e626f5aa32120295b3ad3507ad0ff1e2'),
+         '$2b$12$e0U3ISqGeZv4JdvZTLKu7..VnAhkCpuc1UEfbIg3JRy3Xe7Kh5FNu'),
         ('consulta', 'Consulta Meditec', 'consulta@meditec.local',
-         '7fa95c704c2defa7b1295d28bcddfd752bf9b594db18886dd64721183cfc47a5')
+         '$2b$12$TZvdH3363vVRxj5SpN6kb.bz/5lopVzBGeDP2hWk4MfjFPirp3eJK')
 ) AS v(rol, nombre, correo, password_hash)
 JOIN roles r ON r.nombre = v.rol
 ON CONFLICT (correo) DO NOTHING;
@@ -28,18 +28,6 @@ INSERT INTO equipos_autorizados (nombre, identificador_equipo, descripcion) VALU
 ('Equipo generador 1', 'MEDI-GEN-001', 'Computadora autorizada para generar reportes'),
 ('Equipo generador 2', 'MEDI-GEN-002', 'Computadora autorizada para generar reportes')
 ON CONFLICT (identificador_equipo) DO NOTHING;
-
-INSERT INTO servicios_solicitantes (nombre, telefono, correo, direccion)
-SELECT v.nombre, v.telefono, v.correo, v.direccion
-FROM (
-    VALUES
-        ('Area de mantenimiento', '2222-1001', 'mantenimiento@hospital.local', 'Ciudad de Guatemala'),
-        ('Direccion administrativa', '2222-1002', 'administracion@clinica.local', 'Mixco, Guatemala'),
-        ('Coordinacion de biomedica', '2222-1003', 'biomedica@centromedico.local', 'Villa Nueva, Guatemala')
-) AS v(nombre, telefono, correo, direccion)
-WHERE NOT EXISTS (
-    SELECT 1 FROM servicios_solicitantes ss WHERE ss.nombre = v.nombre
-);
 
 INSERT INTO instituciones (nombre, direccion, telefono, correo)
 SELECT v.nombre, v.direccion, v.telefono, v.correo
@@ -53,6 +41,30 @@ WHERE NOT EXISTS (
     SELECT 1 FROM instituciones i WHERE i.nombre = v.nombre
 );
 
+INSERT INTO servicios_solicitantes (id_institucion, nombre)
+SELECT i.id_institucion, v.servicio
+FROM (
+    VALUES
+        ('Hospital Central', 'Area de mantenimiento'),
+        ('Clinica Norte', 'Coordinacion de biomedica'),
+        ('Centro Medico Sur', 'Direccion administrativa')
+) AS v(institucion, servicio)
+JOIN instituciones i ON i.nombre = v.institucion
+ON CONFLICT (id_institucion, nombre) DO NOTHING;
+
+INSERT INTO equipos_medicos (
+    id_institucion, nombre, numero_bien, marca, modelo, numero_serie
+)
+SELECT i.id_institucion, v.nombre, v.numero_bien, v.marca, v.modelo, v.numero_serie
+FROM (
+    VALUES
+        ('Hospital Central', 'Monitor de signos vitales', 'BIEN-001', 'BLT', 'M6000', 'SER-001'),
+        ('Clinica Norte', 'Incubadora neonatal', 'BIEN-002', 'Medix', 'PC-305', 'SER-002'),
+        ('Centro Medico Sur', 'Centrifuga de laboratorio', 'BIEN-003', 'Hettich', 'EBA-200', 'SER-003')
+) AS v(institucion, nombre, numero_bien, marca, modelo, numero_serie)
+JOIN instituciones i ON i.nombre=v.institucion
+ON CONFLICT (id_institucion, numero_bien) DO NOTHING;
+
 INSERT INTO tecnicos (nombre, telefono, correo, especialidad)
 SELECT v.nombre, v.telefono, v.correo, v.especialidad
 FROM (
@@ -65,31 +77,30 @@ WHERE NOT EXISTS (
     SELECT 1 FROM tecnicos t WHERE t.correo = v.correo
 );
 
-INSERT INTO proveedores (nombre, nit, telefono, correo, direccion)
-SELECT v.nombre, v.nit, v.telefono, v.correo, v.direccion
+INSERT INTO proveedores (nombre, nit, telefono, correo, direccion, logo_url, pie_pagina)
+SELECT v.nombre, v.nit, v.telefono, v.correo, v.direccion, v.logo_url, v.pie_pagina
 FROM (
     VALUES
-        ('Proveedor Biomedico A', '1000001-1', '2440-1001', 'ventas@proveedora.local', 'Ciudad de Guatemala'),
-        ('Suministros Clinicos B', '1000002-2', '2440-1002', 'ventas@proveedorb.local', 'Mixco, Guatemala')
-) AS v(nombre, nit, telefono, correo, direccion)
+        ('Proveedor Biomedico A', '1000001-1', '2440-1001', 'ventas@proveedora.local', 'Ciudad de Guatemala', '/logos/proveedor-a.png', 'Proveedor Biomedico A - Servicio tecnico y soporte'),
+        ('Suministros Clinicos B', '1000002-2', '2440-1002', 'ventas@proveedorb.local', 'Mixco, Guatemala', '/logos/proveedor-b.png', 'Suministros Clinicos B - Guatemala')
+) AS v(nombre, nit, telefono, correo, direccion, logo_url, pie_pagina)
 WHERE NOT EXISTS (
     SELECT 1 FROM proveedores p WHERE p.nit = v.nit
 );
 
 -- Reporte que posteriormente se publica despues de asociarle un PDF.
 INSERT INTO reportes (
-    codigo_reporte, id_servicio_solicitante, id_institucion,
+    codigo_reporte, id_servicio_solicitante,
     id_usuario_creador, id_equipo_autorizado, titulo, descripcion,
     fecha_reporte, estado
 )
 SELECT
-    'REP-2026-000001', ss.id_servicio_solicitante, i.id_institucion,
+    'REP-2026-000001', ss.id_servicio_solicitante,
     u.id_usuario, e.id_equipo_autorizado,
     'Mantenimiento preventivo de monitor',
     'Revision preventiva y comprobacion general de equipo medico.',
     DATE '2026-09-01', 'borrador'
 FROM servicios_solicitantes ss
-JOIN instituciones i ON i.nombre = 'Hospital Central'
 JOIN usuarios u ON u.correo = 'generador@meditec.local'
 JOIN equipos_autorizados e ON e.identificador_equipo = 'MEDI-GEN-001'
 WHERE ss.nombre = 'Area de mantenimiento'
@@ -98,18 +109,17 @@ WHERE ss.nombre = 'Area de mantenimiento'
   );
 
 INSERT INTO reportes (
-    codigo_reporte, id_servicio_solicitante, id_institucion,
+    codigo_reporte, id_servicio_solicitante,
     id_usuario_creador, id_equipo_autorizado, titulo, descripcion,
     fecha_reporte, estado
 )
 SELECT
-    'REP-2026-000002', ss.id_servicio_solicitante, i.id_institucion,
+    'REP-2026-000002', ss.id_servicio_solicitante,
     u.id_usuario, e.id_equipo_autorizado,
     'Revision de incubadora',
     'Reporte en preparacion pendiente de archivo PDF.',
     DATE '2026-09-10', 'borrador'
 FROM servicios_solicitantes ss
-JOIN instituciones i ON i.nombre = 'Clinica Norte'
 JOIN usuarios u ON u.correo = 'generador@meditec.local'
 JOIN equipos_autorizados e ON e.identificador_equipo = 'MEDI-GEN-002'
 WHERE ss.nombre = 'Coordinacion de biomedica'
@@ -118,18 +128,17 @@ WHERE ss.nombre = 'Coordinacion de biomedica'
   );
 
 INSERT INTO reportes (
-    codigo_reporte, id_servicio_solicitante, id_institucion,
+    codigo_reporte, id_servicio_solicitante,
     id_usuario_creador, id_equipo_autorizado, titulo, descripcion,
     fecha_reporte, estado
 )
 SELECT
-    'REP-2026-000003', ss.id_servicio_solicitante, i.id_institucion,
+    'REP-2026-000003', ss.id_servicio_solicitante,
     u.id_usuario, e.id_equipo_autorizado,
     'Calibracion de centrifuga',
     'Reporte anulado utilizado para demostrar filtros por estado.',
     DATE '2026-08-26', 'anulado'
 FROM servicios_solicitantes ss
-JOIN instituciones i ON i.nombre = 'Centro Medico Sur'
 JOIN usuarios u ON u.correo = 'admin@meditec.local'
 JOIN equipos_autorizados e ON e.identificador_equipo = 'MEDI-GEN-001'
 WHERE ss.nombre = 'Direccion administrativa'
@@ -161,6 +170,28 @@ FROM (
 JOIN reportes r ON r.codigo_reporte = v.codigo_reporte
 JOIN proveedores p ON p.nit = v.nit_proveedor
 ON CONFLICT (id_reporte, id_proveedor) DO NOTHING;
+
+UPDATE reportes r
+SET id_proveedor_plantilla = rp.id_proveedor
+FROM reporte_proveedor rp
+WHERE rp.id_reporte = r.id_reporte
+  AND r.id_proveedor_plantilla IS NULL;
+
+UPDATE reportes r
+SET id_equipo_medico=em.id_equipo_medico,
+    descripcion_equipo=em.nombre,
+    numero_bien=em.numero_bien,
+    marca=em.marca,
+    modelo=em.modelo,
+    numero_serie=em.numero_serie
+FROM equipos_medicos em, servicios_solicitantes ss
+WHERE ss.id_servicio_solicitante=r.id_servicio_solicitante
+  AND em.id_institucion=ss.id_institucion
+  AND em.numero_bien = CASE r.codigo_reporte
+      WHEN 'REP-2026-000001' THEN 'BIEN-001'
+      WHEN 'REP-2026-000002' THEN 'BIEN-002'
+      WHEN 'REP-2026-000003' THEN 'BIEN-003'
+  END;
 
 INSERT INTO archivos_pdf (
     id_reporte, url_archivo, hash_archivo, tamano_bytes, estado
