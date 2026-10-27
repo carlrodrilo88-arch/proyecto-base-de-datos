@@ -1,3 +1,8 @@
+
+
+
+
+
 -- Habilita la administracion segura de usuarios desde la aplicacion web.
 -- Los usuarios existentes deben cambiar su contrasena conocida al iniciar sesion.
 

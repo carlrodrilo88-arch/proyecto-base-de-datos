@@ -23,7 +23,17 @@ async function main() {
         SELECT 1 FROM information_schema.columns
         WHERE table_schema='public' AND table_name='usuarios'
           AND column_name='debe_cambiar_password'
-      ) AS cambio_password
+      ) AS cambio_password,
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema='public' AND table_name='reportes'
+          AND column_name='observaciones'
+      ) AS observaciones,
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema='public' AND table_name='proveedores'
+          AND column_name='codigo_plantilla'
+      ) AS codigo_plantilla
   `);
   const result = checks.rows[0];
   const failed = Object.entries(result).filter(([, value]) => !value).map(([key]) => key);
@@ -39,7 +49,7 @@ async function main() {
   `);
   const denied = Object.entries(access.rows[0]).filter(([, value]) => !value).map(([key]) => key);
   if (denied.length) throw new Error(`Permisos incompletos: ${denied.join(', ')}`);
-  console.log("Base de Entrega 3 lista y permisos web verificados");
+  console.log("Base de Meditec lista y permisos web verificados");
 }
 
 main().catch((error) => {

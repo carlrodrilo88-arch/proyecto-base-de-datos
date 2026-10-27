@@ -3,87 +3,143 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123f7a">
     <title>Meditec Reportes</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
     <main class="shell">
       <section id="loginView" class="login">
-        <div class="brand">
-          <span class="mark">M</span>
-          <div>
-            <h1>Meditec Reportes</h1>
-            <p>Acceso al sistema documental</p>
+        <div class="login-layout">
+          <div class="login-intro">
+            <img src="/logos/meditec.png" alt="Meditec" width="201" height="77">
+            <div>
+              <p class="login-kicker">Gestión documental</p>
+              <h1>El servicio técnico, documentado de principio a fin.</h1>
+              <p class="login-description">Registra equipos, centraliza la atención y genera reportes con el formato de cada empresa.</p>
+            </div>
+            <p class="login-footnote">Equipo médico · Historial verificable · PDF corporativo</p>
           </div>
+          <form id="loginForm" class="panel login-card">
+            <div class="login-heading">
+              <img class="login-mobile-logo" src="/logos/meditec.png" alt="Meditec" width="201" height="77">
+              <h2>Iniciar sesión</h2>
+              <p>Ingresa con tu cuenta para continuar.</p>
+            </div>
+            <label class="field">Correo electrónico
+              <input name="correo" type="email" autocomplete="username" placeholder="nombre@empresa.com" required>
+            </label>
+            <label class="field">Contraseña
+              <input name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
+            </label>
+            <button type="submit">Ingresar al sistema</button>
+            <p id="loginMessage" class="message" role="alert"></p>
+          </form>
         </div>
-        <form id="loginForm" class="panel">
-          <label>
-            Correo
-            <input name="correo" type="email" value="admin@meditec.local" required>
-          </label>
-          <label>
-            Contrasena
-            <input name="password" type="password" value="admin123" required>
-          </label>
-          <button type="submit">Ingresar</button>
-          <p id="loginMessage" class="message"></p>
-        </form>
       </section>
 
       <section id="appView" class="app hidden">
         <aside class="sidebar">
           <div class="brand compact">
-            <span class="mark">M</span>
+            <span class="brand-logo"><img src="/logos/meditec.png" alt="" width="201" height="77"></span>
             <div>
-              <h1>Meditec</h1>
+              <h1>Reportes</h1>
               <p id="userLabel"></p>
             </div>
           </div>
-          <nav>
-            <button class="nav-button active" data-module="servicios">Servicios solicitantes</button>
-            <button class="nav-button" data-module="tecnicos">Tecnicos</button>
+          <nav aria-label="Modulos">
+            <p class="nav-group">Documentos</p>
+            <button class="nav-button active" data-module="reportes">Reportes</button>
+            <p class="nav-group">Catalogos</p>
             <button class="nav-button" data-module="instituciones">Instituciones</button>
-            <button class="nav-button" data-module="proveedores">Proveedores</button>
+            <button class="nav-button" data-module="servicios">Servicios solicitantes</button>
             <button class="nav-button" data-module="equipos_medicos">Equipos medicos</button>
-            <button class="nav-button" data-module="reportes">Reportes</button>
-            <button id="usersNav" class="nav-button hidden" data-module="usuarios">Usuarios</button>
+            <button class="nav-button" data-module="tecnicos">Tecnicos</button>
+            <button class="nav-button" data-module="proveedores">Empresas y proveedores</button>
+            <p class="nav-group">Cuenta</p>
+            <button id="devicesNav" class="nav-button hidden" data-module="equipos_autorizados">Constancia de computadoras</button>
+            <button id="usersNav" class="nav-button hidden" data-module="usuarios">Usuarios y permisos</button>
             <button class="nav-button" data-module="password">Cambiar mi contrasena</button>
           </nav>
-          <button id="logoutButton" class="secondary">Salir</button>
+          <button id="logoutButton" class="secondary logout">Cerrar sesion</button>
         </aside>
 
         <section class="content">
-          <header>
-            <div>
-              <h2 id="moduleTitle">Servicios solicitantes</h2>
-              <p id="moduleSubtitle">CRUD conectado a PostgreSQL</p>
-            </div>
+          <header class="page-header">
+            <h2 id="moduleTitle">Reportes</h2>
+            <p id="moduleSubtitle"></p>
           </header>
+          <p id="appMessage" class="message" role="status"></p>
 
-          <div id="catalogPanel">
-            <form id="recordForm" class="toolbar">
+          <div id="catalogPanel" class="hidden">
+            <form id="recordForm" class="panel record-form">
               <input type="hidden" name="id">
-              <input name="nombre" placeholder="Nombre" required>
-              <input name="telefono" placeholder="Telefono">
-              <input name="correo" placeholder="Correo">
-              <input name="extra" placeholder="Direccion">
-              <select name="id_institucion" class="hidden"></select>
-              <input name="logo_url" class="hidden" placeholder="Ruta o URL del logotipo">
-              <input name="pie_pagina" class="hidden" placeholder="Texto del pie de pagina">
-              <input name="numero_bien" class="hidden" placeholder="Numero de bien">
-              <input name="marca" class="hidden" placeholder="Marca">
-              <input name="modelo" class="hidden" placeholder="Modelo">
-              <input name="numero_serie" class="hidden" placeholder="Numero de serie">
-              <select name="id_rol" class="hidden"></select>
-              <input name="password_temporal" type="password" class="hidden" placeholder="Contrasena temporal">
-              <label class="check">
-                <input name="activo" type="checkbox" checked>
-                Activo
-              </label>
-              <button type="submit">Guardar</button>
-              <button type="button" id="clearButton" class="secondary">Nuevo</button>
+              <h3 id="recordFormTitle" class="panel-title">Nuevo registro</h3>
+              <div class="form-grid">
+                <label class="field" data-field="nombre"><span>Nombre</span>
+                  <input name="nombre" maxlength="180" required>
+                </label>
+                <label class="field" data-field="id_institucion">Institucion
+                  <select name="id_institucion"></select>
+                </label>
+                <label class="field" data-field="numero_bien">Numero de bien
+                  <input name="numero_bien" maxlength="100">
+                </label>
+                <label class="field" data-field="numero_serie">Numero de serie
+                  <input name="numero_serie" maxlength="100">
+                </label>
+                <label class="field" data-field="marca">Marca
+                  <input name="marca" maxlength="100">
+                </label>
+                <label class="field" data-field="modelo">Modelo
+                  <input name="modelo" maxlength="100">
+                </label>
+                <label class="field" data-field="telefono">Telefono
+                  <input name="telefono" type="tel" maxlength="40">
+                </label>
+                <label class="field" data-field="correo">Correo
+                  <input name="correo" type="email" maxlength="160">
+                </label>
+                <label class="field" data-field="nit">NIT
+                  <input name="nit" maxlength="30">
+                </label>
+                <label class="field" data-field="especialidad">Especialidad
+                  <input name="especialidad" maxlength="120">
+                </label>
+                <label class="field" data-field="direccion">Direccion
+                  <input name="direccion" maxlength="1000">
+                </label>
+                <label class="field" data-field="identificador_equipo">Identificador de la computadora
+                  <input name="identificador_equipo" maxlength="160" placeholder="Ej. MEDI-GEN-001">
+                </label>
+                <label class="field wide" data-field="descripcion">Descripción
+                  <input name="descripcion" maxlength="1000" placeholder="Constancia del equipo utilizado">
+                </label>
+                <label class="field" data-field="pie_pagina">Pie de pagina del PDF
+                  <input name="pie_pagina" maxlength="2000">
+                </label>
+                <label class="field" data-field="id_rol">Rol
+                  <select name="id_rol"></select>
+                </label>
+                <label class="field" data-field="password_temporal">Contrasena temporal
+                  <input name="password_temporal" type="password" autocomplete="new-password">
+                </label>
+              </div>
+              <div class="form-actions">
+                <label id="activeCheck" class="check">
+                  <input name="activo" type="checkbox" checked>
+                  Activo
+                </label>
+                <span class="spacer"></span>
+                <button type="button" id="clearButton" class="secondary">Cancelar</button>
+                <button type="submit" id="recordSubmit">Guardar</button>
+              </div>
             </form>
 
+            <div class="list-header">
+              <input id="catalogSearch" type="search" placeholder="Filtrar registros" aria-label="Filtrar registros">
+              <span id="catalogCount" class="muted"></span>
+            </div>
             <div class="table-wrap">
               <table>
                 <thead><tr id="tableHead"></tr></thead>
@@ -92,68 +148,161 @@
             </div>
           </div>
 
-          <div id="reportsPanel" class="hidden">
-            <form id="reportForm" class="report-form panel">
-              <input name="titulo" placeholder="Titulo del reporte" required>
-              <input name="fecha_reporte" type="date" required>
-              <select name="id_servicio_solicitante" required></select>
-              <div class="equipment-picker">
-                <input id="equipmentSearch" type="search"
-                  placeholder="Buscar por equipo, numero de bien o serie" autocomplete="off">
-                <div id="equipmentSuggestions" class="equipment-suggestions hidden"></div>
+          <div id="reportsPanel">
+            <form id="reportForm" class="report-form">
+              <fieldset class="panel step">
+                <legend><span class="step-number">1</span> Institucion atendida</legend>
+                <div class="form-grid">
+                  <label class="field">Institucion
+                    <select name="id_institucion_reporte" required></select>
+                  </label>
+                  <label class="field">Servicio solicitante
+                    <select name="id_servicio_solicitante" required disabled></select>
+                  </label>
+                  <label class="field">Fecha del servicio
+                    <input name="fecha_reporte" type="date" required>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="panel step">
+                <legend><span class="step-number">2</span> Equipos atendidos</legend>
+                <p class="hint">Busque por numero de bien, serie, descripcion, marca o modelo. Se crea un reporte independiente por cada equipo.</p>
+                <div class="equipment-picker">
+                  <input id="equipmentSearch" type="search" disabled
+                    placeholder="Seleccione primero la institucion" autocomplete="off" aria-label="Buscar equipo">
+                  <div id="equipmentSuggestions" class="equipment-suggestions hidden" role="listbox"></div>
+                </div>
                 <div id="selectedEquipmentList" class="selected-equipment-list"></div>
+                <button type="button" id="newEquipmentToggle" class="link-button" disabled>+ Registrar un equipo nuevo</button>
+                <div id="newEquipmentPanel" class="new-equipment hidden">
+                  <div class="form-grid">
+                    <label class="field wide">Descripcion del equipo
+                      <input data-equipment="nombre" maxlength="180" placeholder="Ej. Monitor de signos vitales">
+                    </label>
+                    <label class="field">Marca
+                      <input data-equipment="marca" maxlength="100">
+                    </label>
+                    <label class="field">Modelo
+                      <input data-equipment="modelo" maxlength="100">
+                    </label>
+                    <label class="field">Numero de bien
+                      <input data-equipment="numero_bien" maxlength="100">
+                    </label>
+                    <label class="field">Numero de serie
+                      <input data-equipment="numero_serie" maxlength="100">
+                    </label>
+                  </div>
+                  <div class="form-actions">
+                    <span class="hint">Indique al menos el numero de bien o el numero de serie.</span>
+                    <span class="spacer"></span>
+                    <button type="button" id="newEquipmentCancel" class="secondary">Cancelar</button>
+                    <button type="button" id="newEquipmentSave">Guardar y agregar</button>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="panel step">
+                <legend><span class="step-number">3</span> Plantilla del reporte</legend>
+                <div id="templateOptions" class="template-options" role="radiogroup" aria-label="Empresa que presto el servicio"></div>
+                <details id="templatePreview" class="template-preview hidden">
+                  <summary>Ver muestra del formato <span id="templateName"></span></summary>
+                  <p class="hint">Este formato se usa en la vista previa y en el PDF final. Las firmas se completan en papel.
+                    <a id="templateLink" target="_blank" rel="noopener">Abrir formato PDF</a></p>
+                  <div id="templateSheet" class="template-sheet" aria-label="Muestra visual del formato seleccionado"></div>
+                </details>
+              </fieldset>
+
+              <fieldset class="panel step">
+                <legend><span class="step-number">4</span> Detalle del servicio</legend>
+                <div class="form-grid">
+                  <label class="field">Tipo de servicio
+                    <select name="tipo_servicio" required>
+                      <option value="">Seleccione</option>
+                      <option value="garantia">Garantia</option>
+                      <option value="preventivo">Mantenimiento preventivo</option>
+                      <option value="correctivo">Mantenimiento correctivo</option>
+                      <option value="emergencia">Llamada de emergencia</option>
+                      <option value="otros">Otros</option>
+                    </select>
+                  </label>
+                  <label class="field">Asunto del reporte
+                    <input name="titulo" maxlength="180" spellcheck="true" required>
+                  </label>
+                  <label id="pedidoField" class="field">Numero de pedido y NOG
+                    <input name="numero_pedido_nog" placeholder="Opcional" maxlength="80">
+                  </label>
+                  <label class="field wide">Descripcion del servicio / especificaciones tecnicas
+                    <textarea name="especificaciones_tecnicas" placeholder="Describa el trabajo realizado" maxlength="6000" spellcheck="true" required></textarea>
+                  </label>
+                  <label class="field wide">Recomendaciones
+                    <textarea name="recomendaciones" placeholder="Opcional" maxlength="6000" spellcheck="true"></textarea>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="submit-bar">
+                <span id="reportSummary" class="muted"></span>
+                <button type="submit" id="reportSubmit">Revisar reporte</button>
               </div>
-              <select name="id_proveedor_plantilla" required></select>
-              <input name="numero_pedido_nog" placeholder="Numero de pedido y NOG">
-              <select name="tipo_servicio" required>
-                <option value="">Seleccione tipo de servicio</option>
-                <option value="garantia">Garantia</option>
-                <option value="preventivo">Mantenimiento preventivo</option>
-                <option value="correctivo">Mantenimiento correctivo</option>
-                <option value="emergencia">Llamada de emergencia</option>
-                <option value="otros">Otros</option>
-              </select>
-              <textarea name="especificaciones_tecnicas" placeholder="Especificaciones tecnicas" required></textarea>
-              <textarea name="recomendaciones" placeholder="Recomendaciones"></textarea>
-              <textarea name="descripcion" placeholder="Descripcion u observaciones generales"></textarea>
-              <button type="submit">Guardar borrador y ver</button>
             </form>
-            <form id="reportFilterForm" class="filters">
-              <input name="codigo" placeholder="Buscar por codigo">
-              <select name="estado">
-                <option value="">Todos los estados</option>
-                <option value="borrador">Borrador</option>
-                <option value="publicado">Publicado</option>
-                <option value="anulado">Anulado</option>
-              </select>
-              <button type="submit">Buscar</button>
-            </form>
-            <div class="table-wrap">
-              <table>
-                <thead><tr id="reportTableHead"></tr></thead>
-                <tbody id="reportTableBody"></tbody>
-              </table>
-            </div>
+
+            <section class="panel reports-list">
+              <h3 class="panel-title">Reportes registrados</h3>
+              <form id="reportFilterForm" class="filters">
+                <input name="codigo" type="search" placeholder="Buscar por codigo" aria-label="Buscar por codigo">
+                <select name="estado" aria-label="Estado">
+                  <option value="">Todos los estados</option>
+                  <option value="borrador">Borrador</option>
+                  <option value="publicado">Publicado</option>
+                  <option value="anulado">Anulado</option>
+                </select>
+                <button type="submit" class="secondary">Buscar</button>
+              </form>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr id="reportTableHead"></tr></thead>
+                  <tbody id="reportTableBody"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
+
           <div id="passwordPanel" class="hidden">
             <form id="passwordForm" class="panel password-form">
               <p id="passwordNotice">Actualice su contrasena personal.</p>
-              <label>Contrasena actual
+              <label class="field">Contrasena actual
                 <input name="password_actual" type="password" autocomplete="current-password" required>
               </label>
-              <label>Nueva contrasena
+              <label class="field">Nueva contrasena
                 <input name="password_nueva" type="password" minlength="10" autocomplete="new-password" required>
               </label>
-              <label>Confirmar nueva contrasena
+              <label class="field">Confirmar nueva contrasena
                 <input name="password_confirmacion" type="password" minlength="10" autocomplete="new-password" required>
               </label>
               <button type="submit">Guardar nueva contrasena</button>
             </form>
           </div>
-          <p id="appMessage" class="message"></p>
         </section>
       </section>
     </main>
+
+    <dialog id="reportReviewDialog" class="review-dialog" aria-labelledby="reviewTitle">
+      <div class="review-header">
+        <div>
+          <p class="review-kicker">Antes de crear los archivos</p>
+          <h2 id="reviewTitle">Revise el reporte</h2>
+          <p>Compruebe datos, redacción y equipos. Todavía no se ha guardado nada.</p>
+        </div>
+        <button type="button" id="reviewClose" class="secondary review-close" aria-label="Cerrar revisión">×</button>
+      </div>
+      <div id="reviewWarnings" class="review-warnings"></div>
+      <div id="reviewContent" class="review-content"></div>
+      <div class="review-actions">
+        <button type="button" id="reviewBack" class="secondary">Volver y corregir</button>
+        <button type="button" id="reviewConfirm">Crear y publicar PDF</button>
+      </div>
+    </dialog>
     <script src="/app.js"></script>
   </body>
 </html>

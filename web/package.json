@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
+    "db:migrate": "node src/migrate-report-templates.js",
     "test:db": "node src/database-readiness.js"
   },
   "dependencies": {

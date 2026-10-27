@@ -1,5 +1,33 @@
 -- Funciones y procedimientos de negocio para reportes y archivos PDF.
 
+-- Las bases creadas con el esquema inicial pueden no tener la secuencia. Si ya
+-- existen reportes, se avanza hasta el mayor sufijo numerico para evitar codigos
+-- duplicados. La reejecucion nunca disminuye una secuencia existente.
+CREATE SEQUENCE IF NOT EXISTS secuencia_codigo_reporte
+    AS BIGINT START WITH 1 INCREMENT BY 1;
+
+DO $$
+DECLARE
+    maximo_existente BIGINT;
+    valor_secuencia BIGINT;
+    secuencia_usada BOOLEAN;
+BEGIN
+    SELECT COALESCE(MAX((SUBSTRING(codigo_reporte FROM '([0-9]+)$'))::BIGINT), 0)
+    INTO maximo_existente
+    FROM reportes
+    WHERE codigo_reporte ~ '[0-9]+$';
+
+    SELECT last_value, is_called
+    INTO valor_secuencia, secuencia_usada
+    FROM secuencia_codigo_reporte;
+
+    IF maximo_existente > valor_secuencia
+       OR (maximo_existente = valor_secuencia AND maximo_existente > 0 AND NOT secuencia_usada) THEN
+        PERFORM setval('secuencia_codigo_reporte', maximo_existente, TRUE);
+    END IF;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION generar_codigo_reporte()
 RETURNS TEXT AS $$
 DECLARE

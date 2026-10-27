@@ -28,6 +28,7 @@ TO meditec_web;
 GRANT INSERT, UPDATE ON usuarios, servicios_solicitantes, tecnicos, instituciones,
     proveedores, equipos_medicos, reportes, archivos_pdf
 TO meditec_web;
+GRANT INSERT ON equipos_autorizados TO meditec_web;
 GRANT INSERT ON reporte_proveedor TO meditec_web;
 GRANT USAGE, SELECT ON SEQUENCE
     servicios_solicitantes_id_servicio_solicitante_seq,
@@ -38,6 +39,7 @@ GRANT USAGE, SELECT ON SEQUENCE
     equipos_medicos_id_equipo_medico_seq,
     reportes_id_reporte_seq,
     archivos_pdf_id_archivo_pdf_seq,
+    equipos_autorizados_id_equipo_autorizado_seq,
     secuencia_codigo_reporte
 TO meditec_web;
 

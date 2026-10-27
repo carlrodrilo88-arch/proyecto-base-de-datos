@@ -37,7 +37,7 @@ CREATE TABLE equipos_autorizados (
     nombre VARCHAR(100) NOT NULL,
     identificador_equipo VARCHAR(160) NOT NULL UNIQUE,
     descripcion TEXT,
-    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    activo BOOLEAN NOT NULL DEFAULT FALSE,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -101,8 +101,12 @@ CREATE TABLE proveedores (
     direccion TEXT,
     logo_url TEXT,
     pie_pagina TEXT,
+    codigo_plantilla VARCHAR(20),
     activo BOOLEAN NOT NULL DEFAULT TRUE,
-    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_proveedores_codigo_plantilla
+        CHECK (codigo_plantilla IN ('teknor', 'meditec', 'gtmedical')),
+    CONSTRAINT uq_proveedores_codigo_plantilla UNIQUE (codigo_plantilla)
 );
 
 CREATE TABLE reportes (
@@ -114,7 +118,7 @@ CREATE TABLE reportes (
     id_usuario_creador BIGINT NOT NULL,
     id_equipo_autorizado BIGINT,
     titulo VARCHAR(180) NOT NULL,
-    descripcion TEXT,
+    observaciones TEXT,
     numero_pedido_nog VARCHAR(80),
     descripcion_equipo VARCHAR(240),
     marca VARCHAR(100),

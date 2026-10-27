@@ -97,6 +97,7 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | direccion    | TEXT         |                                     | Direccion del proveedor.        |
 | logo_url     | TEXT         |                                     | Ruta o URL del logotipo usado en reportes. |
 | pie_pagina   | TEXT         |                                     | Texto institucional para el pie del reporte. |
+| codigo_plantilla | VARCHAR(20) | UNIQUE, CHECK                    | Identidad estable: teknor, meditec o gtmedical; NULL para otros proveedores. |
 | activo       | BOOLEAN      | NOT NULL, DEFAULT TRUE              | Indica si sigue vigente.        |
 | creado_en    | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de registro.              |
 
@@ -108,11 +109,11 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | codigo_reporte          | VARCHAR(40)  | NOT NULL, UNIQUE                    | Codigo unico usado para consulta.              |
 | id_servicio_solicitante | BIGINT       | NOT NULL, FK                        | Servicio solicitante relacionado.              |
 | id_equipo_medico        | BIGINT       | FK                                  | Equipo medico atendido.                         |
-| id_proveedor_plantilla  | BIGINT       | FK                                  | Proveedor que define identidad y formato.       |
+| id_proveedor_plantilla  | BIGINT       | FK                                  | Empresa prestadora cuyo formato usa el reporte. |
 | id_usuario_creador      | BIGINT       | NOT NULL, FK                        | Usuario que registro el reporte.               |
 | id_equipo_autorizado    | BIGINT       | FK                                  | Equipo usado para cargar o generar el reporte. |
 | titulo                  | VARCHAR(180) | NOT NULL                            | Titulo del reporte.                            |
-| descripcion             | TEXT         |                                     | Descripcion general.                           |
+| observaciones           | TEXT         |                                     | Observaciones adicionales; antiguo campo descripcion renombrado por migracion 005. |
 | numero_pedido_nog       | VARCHAR(80)  |                                     | Referencia de pedido o NOG.                    |
 | descripcion_equipo      | VARCHAR(240) |                                     | Equipo atendido.                               |
 | marca                   | VARCHAR(100) |                                     | Marca del equipo.                              |

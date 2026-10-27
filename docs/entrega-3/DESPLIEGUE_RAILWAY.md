@@ -35,8 +35,9 @@ repositorio.
 ## Base de datos remota
 
 En una base vacia ejecutar el orden completo de `INSTALL.md`. En una copia de
-la base actual ejecutar las migraciones 001, 002 y 003 y despues reaplicar los
-scripts de seguridad.
+la base actual aplicar las migraciones pendientes hasta la 005 y despues
+reaplicar los scripts de seguridad. No repetir migraciones anteriores ya
+aplicadas. El DDL actual ya incorpora los cambios para instalaciones nuevas.
 
 ## Validacion previa al tag
 

@@ -4,4 +4,10 @@ web/node_modules/
 web/.env
 web/storage/
 npm-debug.log*
-/web/nbproject/private/
+/web/nbproject/
+/_bmad/
+/_bmad-output/
+/.agents/
+/skills-lock.json
+/*.png
+/*.pdf

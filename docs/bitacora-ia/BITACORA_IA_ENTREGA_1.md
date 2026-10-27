@@ -1,4 +1,56 @@
-# Bitacora de Agentes IA - 
+# Bitacora consolidada de Agentes IA
+
+## Registro 21
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 27/10/2026 |
+| Herramienta | Claude Code / Claude Opus 5.5 |
+| Objetivo | Adaptar el historial de reportes en Excel (`Libro1.xlsx`) al modelo de datos para cargar instituciones, servicios solicitantes y equipos medicos con su numero de bien, marca, modelo y serie. |
+| Prompt utilizado | Se solicito exportar del Excel las instituciones, servicios, equipos, modelos y numeros de bien para agregarlos a la base de datos, tomando el contexto del proyecto. Ante numeros de bien repetidos con datos distintos, el responsable indico que corresponden al mismo equipo. |
+| Resultado obtenido | Se relacionaron las columnas del Excel con `instituciones`, `servicios_solicitantes` y `equipos_medicos`. Se unificaron las variantes de escritura de cada institucion (por ejemplo, cuatro formas de Hospital Regional de Occidente) y de los servicios que solo diferian en mayusculas o acentos. Se dejo un solo equipo por numero de bien, conservando la variante con datos mas completos, y los equipos sin numero de bien se guardaron con ese campo vacio. Se omitieron las filas sin institucion y una fila con cliente "13", cuyo bien ya estaba registrado en el IGSS. Se genero `sql/dml/003_carga_excel_equipos.sql`, con encabezado de archivo, autor, descripcion y dependencias, que se puede ejecutar varias veces sin duplicar (`ON CONFLICT` y `NOT EXISTS`), y se agrego al orden de instalacion en `INSTALL.md`. |
+| Validacion del grupo | Proyecto individual validado por Carlos. El script se probo primero dentro de una transaccion revertida: inserto 6 instituciones, 96 servicios y 285 equipos, y una segunda ejecucion no agrego registros. Con autorizacion del responsable se ejecuto sobre `meditec_reportes`, que paso de 2 a 8 instituciones, de 3 a 99 servicios y de 1 a 286 equipos, sin modificar los datos existentes. Se verifico con una conexion nueva el conteo por institucion. Queda pendiente confirmar si los bienes `HRO-N5-68-004A0626` y `HRO-N2-30-00450E4B`, con 12 y 8 series distintas, son un solo equipo o varios. |
+| Estandares aplicados | R6, S1, S2, S3, S4, S7, S8, D1 y D4. |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 20
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 27/10/2026 |
+| Herramienta | OpenCode / GPT-5.6 Sol; skills `frontend-design`, `browser-automation` y `pdf` |
+| Objetivo | Cerrar el flujo web de reportes para la Entrega 4, mejorar la interfaz, adaptar las plantillas corporativas a una sola hoja y validar la integracion con PostgreSQL 15. |
+| Prompt utilizado | Se solicito mejorar el diseno de la pagina conservando la funcionalidad; retirar la carga de logotipos porque cada empresa usa una plantilla fija; registrar las computadoras solamente como constancia inactiva; buscar equipos medicos por marca, numero de bien o serie; revisar datos y redaccion antes de crear; crear y publicar el PDF en una sola accion; reproducir la distribucion de las capturas de Teknor, Meditec y GT Medical; conservar recomendaciones y retirar observaciones de los reportes nuevos. |
+| Resultado obtenido | Se renovo la interfaz responsive con identidad visual Meditec y foco accesible; se retiraron los logotipos editables; se agrego el modulo administrativo de constancia de computadoras, siempre inactivas y sin edicion; se preparo la migracion 006 y se actualizaron permisos minimos; se incorporo una revision previa sin persistencia con advertencias de espacios, palabras repetidas, mayusculas, puntuacion y texto insuficiente; la confirmacion crea, almacena y publica un PDF por equipo; se corrigio la instalacion de la secuencia de codigos para bases antiguas; y las tres plantillas PDF quedaron en una sola hoja, con especificaciones tecnicas, recomendaciones y firmas, sin el apartado de observaciones. Si el texto no cabe con un tamano legible, la publicacion se rechaza en lugar de recortar informacion. |
+| Validacion del grupo | Proyecto individual validado por Carlos. PostgreSQL 15 quedo actualizado y `npm run test:db` confirmo esquema y privilegios de `meditec_web`; `/api/health` respondio correctamente; las 27 pruebas automatizadas finalizaron sin fallos; se verifico el acceso administrativo con cambio obligatorio de contrasena; y se renderizaron visualmente las plantillas Teknor, Meditec y GT Medical, confirmando una pagina, identidad diferenciada, ausencia de observaciones y espacio de firmas sin superposiciones. No se crearon reportes reales durante las pruebas visuales. |
+| Estandares aplicados | R1, R6, R7, S1, S2, S3, S4, S7, S8, A1, A2, A3, A4, A5, A6, D1 y D4. |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 19
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 12/10/2026 |
+| Herramienta | ChatGPT / OpenCode |
+| Objetivo | Evaluar los ajustes necesarios en la base de datos para mejorar la coherencia del flujo de reportes. |
+| Prompt utilizado | ¿Es necesario modificar la base de datos para mejorar la fluidez del proyecto, considerando una empresa prestadora por reporte, sus plantillas, los datos del equipo, las observaciones y las firmas manuales? |
+| Resultado obtenido | Se determino que no es necesario reconstruir la base ni aplicar optimizaciones sin evidencia de lentitud. Con autorizacion del responsable se preparo la migracion 005 para agregar codigo_plantilla, renombrar descripcion como observaciones conservando su contenido y registrar las empresas ausentes. Se actualizaron aplicacion, scripts, diccionario, instalacion y exclusiones de Git. |
+| Validacion del grupo | La propuesta fue autorizada antes de implementarla. Se aprobaron 27 pruebas automatizadas. En PostgreSQL 18 aislado se comprobaron conservacion de reportes y referencias PDF, reejecucion sin duplicados, instalacion desde cero y permisos restringidos. En navegador se crearon, publicaron y recuperaron PDF de las tres empresas contra esa base temporal. Aplicar la migracion a meditec_reportes_pruebas permanece pendiente de DATABASE_ADMIN_URL con la cuenta propietaria; no se modificaron sus datos. |
+| Estandares aplicados | R1, R6, S1, S2, S3, S4, S7, S8, D1 y D4. |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 18
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 01/10/2026 |
+| Herramienta | ChatGPT / Codex |
+| Objetivo | Consolidar el estado de la Entrega 3 y dejar un punto seguro para continuar el proyecto posteriormente |
+| Prompt utilizado | Se solicito registrar el estado alcanzado despues de implementar seguridad, administracion de usuarios, cambio obligatorio de contrasena, catalogos, busqueda de equipos y generacion de reportes individuales por lote, conservando las decisiones y pendientes para una sesion futura |
+| Resultado obtenido | La base local `meditec_reportes_pruebas` quedo actualizada hasta la migracion 004; la web administra usuarios por rol y genera un borrador y PDF independiente por cada equipo seleccionado. Se aprobaron 17 pruebas automatizadas y `npm run test:db`; el commit `66c0530` se publico en `main` y el tag anotado `entrega-3` se publico en GitHub. Por decision del responsable no se agregaron los 50 registros por tabla principal. El estado tecnico y los pasos de reanudacion quedaron documentados en `docs/entrega-3/ESTADO_CONTINUACION.md` |
+| Validacion del grupo | Al reanudar, revisar el documento de continuacion, no ejecutar el reset sobre datos que deban conservarse, comprobar visualmente usuarios y reportes por lote, configurar Railway y decidir si se completaran los 50 registros antes de una version posterior |
+| Estandares aplicados | R2, R3, R5, S2, S3, S4, S7, S8, D1, D2, D4. Codigos tomados de los estandares definidos en el PDF del proyecto |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
 
 ## Registro 16
 

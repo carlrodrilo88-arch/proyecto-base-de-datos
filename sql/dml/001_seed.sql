@@ -24,9 +24,9 @@ FROM (
 JOIN roles r ON r.nombre = v.rol
 ON CONFLICT (correo) DO NOTHING;
 
-INSERT INTO equipos_autorizados (nombre, identificador_equipo, descripcion) VALUES
-('Equipo generador 1', 'MEDI-GEN-001', 'Computadora autorizada para generar reportes'),
-('Equipo generador 2', 'MEDI-GEN-002', 'Computadora autorizada para generar reportes')
+INSERT INTO equipos_autorizados (nombre, identificador_equipo, descripcion, activo) VALUES
+('Equipo generador 1', 'MEDI-GEN-001', 'Constancia de computadora utilizada en el proyecto', FALSE),
+('Equipo generador 2', 'MEDI-GEN-002', 'Constancia de computadora utilizada en el proyecto', FALSE)
 ON CONFLICT (identificador_equipo) DO NOTHING;
 
 INSERT INTO instituciones (nombre, direccion, telefono, correo)
@@ -91,7 +91,7 @@ WHERE NOT EXISTS (
 -- Reporte que posteriormente se publica despues de asociarle un PDF.
 INSERT INTO reportes (
     codigo_reporte, id_servicio_solicitante,
-    id_usuario_creador, id_equipo_autorizado, titulo, descripcion,
+    id_usuario_creador, id_equipo_autorizado, titulo, observaciones,
     fecha_reporte, estado
 )
 SELECT
@@ -110,7 +110,7 @@ WHERE ss.nombre = 'Area de mantenimiento'
 
 INSERT INTO reportes (
     codigo_reporte, id_servicio_solicitante,
-    id_usuario_creador, id_equipo_autorizado, titulo, descripcion,
+    id_usuario_creador, id_equipo_autorizado, titulo, observaciones,
     fecha_reporte, estado
 )
 SELECT
@@ -129,7 +129,7 @@ WHERE ss.nombre = 'Coordinacion de biomedica'
 
 INSERT INTO reportes (
     codigo_reporte, id_servicio_solicitante,
-    id_usuario_creador, id_equipo_autorizado, titulo, descripcion,
+    id_usuario_creador, id_equipo_autorizado, titulo, observaciones,
     fecha_reporte, estado
 )
 SELECT

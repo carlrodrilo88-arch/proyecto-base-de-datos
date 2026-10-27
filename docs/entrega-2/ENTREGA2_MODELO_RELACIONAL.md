@@ -71,6 +71,7 @@ Registra proveedores asociados a servicios, equipos o documentacion.
 
 - PK: `id_proveedor`
 - UK: `nit`
+- UK: `codigo_plantilla` cuando no es nulo; identifica el formato sin depender del nombre comercial.
 
 ### reportes
 
@@ -83,6 +84,7 @@ Registra el documento principal generado o cargado en el sistema.
 - FK: `id_proveedor_plantilla` referencia `proveedores(id_proveedor)`
 - FK: `id_usuario_creador` referencia `usuarios(id_usuario)`
 - FK: `id_equipo_autorizado` referencia `equipos_autorizados(id_equipo_autorizado)`
+- `observaciones`: conserva los valores del anterior campo `descripcion`; el trabajo realizado se describe en `especificaciones_tecnicas`.
 
 ### archivos_pdf
 

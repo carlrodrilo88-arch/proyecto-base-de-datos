@@ -3,7 +3,7 @@ const path = require("path");
 const { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 
 const driver = process.env.STORAGE_DRIVER || "local";
-const localRoot = path.resolve(__dirname, "..", "storage");
+const localRoot = path.resolve(process.env.STORAGE_LOCAL_ROOT || path.join(__dirname, "..", "storage"));
 
 function validateKey(key) {
   if (typeof key !== "string" || !/^reportes\/[A-Za-z0-9._/-]+\.pdf$/.test(key) || key.includes("..")) {

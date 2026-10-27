@@ -5,9 +5,13 @@ const loginMessage = document.querySelector("#loginMessage");
 const appMessage = document.querySelector("#appMessage");
 const userLabel = document.querySelector("#userLabel");
 const recordForm = document.querySelector("#recordForm");
+const recordFormTitle = document.querySelector("#recordFormTitle");
 const tableHead = document.querySelector("#tableHead");
 const tableBody = document.querySelector("#tableBody");
+const catalogSearch = document.querySelector("#catalogSearch");
+const catalogCount = document.querySelector("#catalogCount");
 const moduleTitle = document.querySelector("#moduleTitle");
+const moduleSubtitle = document.querySelector("#moduleSubtitle");
 const clearButton = document.querySelector("#clearButton");
 const logoutButton = document.querySelector("#logoutButton");
 const catalogPanel = document.querySelector("#catalogPanel");
@@ -16,63 +20,129 @@ const passwordPanel = document.querySelector("#passwordPanel");
 const passwordForm = document.querySelector("#passwordForm");
 const passwordNotice = document.querySelector("#passwordNotice");
 const usersNav = document.querySelector("#usersNav");
+const devicesNav = document.querySelector("#devicesNav");
 const reportForm = document.querySelector("#reportForm");
 const reportFilterForm = document.querySelector("#reportFilterForm");
 const reportTableHead = document.querySelector("#reportTableHead");
 const reportTableBody = document.querySelector("#reportTableBody");
+const reportSummary = document.querySelector("#reportSummary");
 const equipmentSearch = document.querySelector("#equipmentSearch");
 const equipmentSuggestions = document.querySelector("#equipmentSuggestions");
 const selectedEquipmentList = document.querySelector("#selectedEquipmentList");
+const newEquipmentToggle = document.querySelector("#newEquipmentToggle");
+const newEquipmentPanel = document.querySelector("#newEquipmentPanel");
+const templateOptions = document.querySelector("#templateOptions");
+const templatePreview = document.querySelector("#templatePreview");
+const templateSheet = document.querySelector("#templateSheet");
+const activeCheck = document.querySelector("#activeCheck");
+const reportReviewDialog = document.querySelector("#reportReviewDialog");
+const reviewWarnings = document.querySelector("#reviewWarnings");
+const reviewContent = document.querySelector("#reviewContent");
+const reviewConfirm = document.querySelector("#reviewConfirm");
 
+// fields: campos visibles del formulario; required: campos obligatorios al crear.
 const modules = {
   servicios: {
     title: "Servicios solicitantes",
+    subtitle: "Areas o departamentos de cada institucion que solicitan el servicio",
+    singular: "servicio solicitante",
     endpoint: "/api/servicios-solicitantes",
     id: "id_servicio_solicitante",
+    nameLabel: "Nombre del servicio",
+    fields: ["nombre", "id_institucion"],
+    required: ["nombre", "id_institucion"],
     columns: ["id_servicio_solicitante", "nombre", "institucion", "activo"],
   },
   tecnicos: {
     title: "Tecnicos",
+    subtitle: "Personal tecnico que atiende los equipos",
+    singular: "tecnico",
     endpoint: "/api/tecnicos",
     id: "id_tecnico",
-    extraLabel: "Especialidad",
-    extraField: "especialidad",
+    nameLabel: "Nombre completo",
+    fields: ["nombre", "telefono", "correo", "especialidad"],
+    required: ["nombre"],
     columns: ["id_tecnico", "nombre", "telefono", "correo", "especialidad", "activo"],
   },
   instituciones: {
     title: "Instituciones",
+    subtitle: "Hospitales y centros a los que se presta el servicio",
+    singular: "institucion",
     endpoint: "/api/instituciones",
     id: "id_institucion",
-    extraLabel: "Direccion",
-    extraField: "direccion",
+    nameLabel: "Nombre de la institucion",
+    fields: ["nombre", "telefono", "correo", "direccion"],
+    required: ["nombre"],
     columns: ["id_institucion", "nombre", "telefono", "correo", "direccion", "activo"],
   },
   proveedores: {
-    title: "Proveedores",
+    title: "Empresas y proveedores",
+    subtitle: "Teknor, Meditec y GT Medical usan su propia plantilla de reporte",
+    singular: "empresa",
     endpoint: "/api/proveedores",
     id: "id_proveedor",
-    extraLabel: "NIT",
-    extraField: "nit",
-    columns: ["id_proveedor", "nombre", "nit", "telefono", "correo", "logo_url", "pie_pagina", "activo"],
+    nameLabel: "Nombre comercial",
+    fields: ["nombre", "nit", "telefono", "correo", "direccion", "pie_pagina"],
+    required: ["nombre"],
+    columns: ["id_proveedor", "nombre", "nit", "telefono", "correo", "pie_pagina", "activo"],
   },
   equipos_medicos: {
     title: "Equipos medicos",
+    subtitle: "Inventario de equipos por institucion",
+    singular: "equipo",
     endpoint: "/api/equipos-medicos",
     id: "id_equipo_medico",
-    columns: ["id_equipo_medico", "nombre", "institucion", "numero_bien", "marca", "modelo", "numero_serie", "activo"],
+    nameLabel: "Descripcion del equipo",
+    fields: ["nombre", "id_institucion", "numero_bien", "numero_serie", "marca", "modelo"],
+    required: ["nombre", "id_institucion", "marca", "modelo"],
+    columns: ["id_equipo_medico", "nombre", "institucion", "numero_bien", "numero_serie", "marca", "modelo", "activo"],
   },
   usuarios: {
     title: "Usuarios y permisos",
+    subtitle: "Cuentas de acceso y rol asignado",
+    singular: "usuario",
     endpoint: "/api/usuarios",
     id: "id_usuario",
+    nameLabel: "Nombre completo",
+    fields: ["nombre", "correo", "id_rol", "password_temporal"],
+    required: ["nombre", "correo", "id_rol", "password_temporal"],
     columns: ["id_usuario", "nombre", "correo", "rol", "debe_cambiar_password", "activo"],
+  },
+  equipos_autorizados: {
+    title: "Constancia de computadoras",
+    subtitle: "Registro inactivo de las computadoras utilizadas durante el proyecto",
+    singular: "computadora",
+    endpoint: "/api/equipos-autorizados",
+    id: "id_equipo_autorizado",
+    nameLabel: "Nombre de la computadora",
+    fields: ["nombre", "identificador_equipo", "descripcion"],
+    required: ["nombre", "identificador_equipo"],
+    columns: ["id_equipo_autorizado", "nombre", "identificador_equipo", "descripcion", "activo"],
+    createOnly: true,
+    activeValue: false,
   },
 };
 
-let activeModule = "servicios";
+const headers = {
+  nombre: "Nombre", institucion: "Institucion", activo: "Estado", telefono: "Telefono",
+  correo: "Correo", especialidad: "Especialidad", direccion: "Direccion", nit: "NIT",
+  pie_pagina: "Pie de pagina", numero_bien: "No. bien", numero_serie: "No. serie",
+  marca: "Marca", modelo: "Modelo", rol: "Rol", debe_cambiar_password: "Contrasena",
+  codigo_reporte: "Codigo", fecha_reporte: "Fecha", servicio_solicitante: "Servicio",
+  proveedor_plantilla: "Plantilla", titulo: "Asunto", estado: "Estado",
+  identificador_equipo: "Identificador", descripcion: "Descripción",
+};
+
+const serviceTypeLabels = {
+  garantia: "Garantia", preventivo: "Mantenimiento preventivo",
+  correctivo: "Mantenimiento correctivo", emergencia: "Llamada de emergencia", otros: "Otros",
+};
+
+let activeModule = "reportes";
 let currentUser = null;
 let reportCatalogs = null;
 let selectedEquipmentIds = [];
+let catalogRows = [];
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -84,55 +154,41 @@ function escapeHtml(value) {
 }
 
 function normalizeSearch(value) {
-  return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return String(value ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-function equipmentLabel(item) {
-  const details = [
-    item.numero_bien ? `Bien: ${item.numero_bien}` : null,
-    item.numero_serie ? `Serie: ${item.numero_serie}` : null,
-    [item.marca, item.modelo].filter(Boolean).join(" ") || null,
-  ].filter(Boolean);
-  return `${item.nombre}${details.length ? ` - ${details.join(" | ")}` : ""}`;
+function showMessage(text, type = "error") {
+  appMessage.textContent = text || "";
+  appMessage.classList.toggle("success", type === "success");
+  if (text) appMessage.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
-function equipmentForSelectedService() {
-  const service = reportCatalogs?.servicios.find(
-    (item) => String(item.id) === reportForm.elements.id_servicio_solicitante.value
-  );
-  return service
-    ? reportCatalogs.equipos_medicos.filter(
-      (item) => String(item.id_institucion) === String(service.id_institucion)
-    )
-    : [];
+function todayIso() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
-function renderSelectedEquipment() {
-  const rows = equipmentForSelectedService().filter((item) => selectedEquipmentIds.includes(String(item.id)));
-  selectedEquipmentList.innerHTML = rows.map((item) => `
-    <div class="selected-equipment">
-      <span>${escapeHtml(equipmentLabel(item))}</span>
-      <button type="button" class="secondary" data-remove-equipment="${escapeHtml(item.id)}">Quitar</button>
-    </div>`).join("");
+// Las fechas DATE llegan como ISO; se muestran como DD/MM/AAAA sin convertir zona horaria.
+function formatDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value ?? ""));
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : escapeHtml(value);
 }
 
-function renderEquipmentSuggestions() {
-  const query = normalizeSearch(equipmentSearch.value.trim());
-  if (!query || !reportForm.elements.id_servicio_solicitante.value) {
-    equipmentSuggestions.classList.add("hidden");
-    equipmentSuggestions.innerHTML = "";
-    return;
+function renderCell(column, value) {
+  if (column === "activo") {
+    return value ? '<span class="badge ok">Activo</span>' : '<span class="badge off">Inactivo</span>';
   }
-  const matches = equipmentForSelectedService()
-    .filter((item) => !selectedEquipmentIds.includes(String(item.id)))
-    .filter((item) => normalizeSearch([
-      item.nombre, item.numero_bien, item.numero_serie, item.marca, item.modelo,
-    ].join(" ")).includes(query))
-    .slice(0, 10);
-  equipmentSuggestions.innerHTML = matches.length
-    ? matches.map((item) => `<button type="button" data-add-equipment="${escapeHtml(item.id)}">${escapeHtml(equipmentLabel(item))}</button>`).join("")
-    : '<p class="message">No hay coincidencias en esta institucion.</p>';
-  equipmentSuggestions.classList.remove("hidden");
+  if (column === "debe_cambiar_password") {
+    return value ? '<span class="badge borrador">Temporal</span>' : '<span class="badge">Definida</span>';
+  }
+  if (column === "estado") return `<span class="badge ${escapeHtml(value)}">${escapeHtml(value)}</span>`;
+  if (column === "fecha_reporte") return `<span class="code">${formatDate(value)}</span>`;
+  if (column === "codigo_reporte") return `<span class="code">${escapeHtml(value)}</span>`;
+  return value === null || value === undefined || value === "" ? '<span class="muted">—</span>' : escapeHtml(value);
+}
+
+function headerCells(columns) {
+  return columns.map((column) => `<th>${escapeHtml(headers[column] || "#")}</th>`).join("") + "<th></th>";
 }
 
 async function api(path, options = {}) {
@@ -146,30 +202,49 @@ async function api(path, options = {}) {
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "Error de comunicacion" }));
+    if (response.status === 401 && currentUser) showLogin("La sesion expiro. Ingrese nuevamente.");
     throw new Error(error.error || "Error de comunicacion");
   }
   if (response.status === 204) return null;
   return response.json();
 }
 
+/* Sesion */
+
+function showLogin(message = "") {
+  currentUser = null;
+  reportCatalogs = null;
+  appView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+  loginMessage.textContent = message;
+}
+
 function showApp(usuario) {
   currentUser = usuario;
   loginView.classList.add("hidden");
   appView.classList.remove("hidden");
-  userLabel.textContent = `${usuario.nombre} - ${usuario.rol}`;
+  userLabel.textContent = `${usuario.nombre} · ${usuario.rol.replace("_", " ")}`;
   usersNav.classList.toggle("hidden", usuario.rol !== "administrador");
-  if (usuario.debe_cambiar_password) {
-    activeModule = "password";
-    passwordNotice.textContent = "Debe cambiar la contrasena temporal antes de continuar.";
-  }
+  devicesNav.classList.toggle("hidden", usuario.rol !== "administrador");
+  passwordNotice.textContent = usuario.debe_cambiar_password
+    ? "Debe cambiar la contrasena temporal antes de continuar."
+    : "Actualice su contrasena personal.";
+  return openModule(usuario.debe_cambiar_password ? "password" : "reportes");
 }
 
-function resetForm() {
-  recordForm.reset();
-  recordForm.elements.id.value = "";
-  recordForm.elements.activo.checked = true;
-  recordForm.elements.password_temporal.placeholder = "Contrasena temporal";
-  recordForm.elements.password_temporal.required = activeModule === "usuarios";
+async function openModule(name) {
+  activeModule = name;
+  showMessage("");
+  configureModule();
+  try {
+    if (name === "reportes") {
+      await Promise.all([loadReportCatalogs(), loadReports()]);
+    } else if (name !== "password") {
+      await loadRows();
+    }
+  } catch (error) {
+    showMessage(error.message);
+  }
 }
 
 function configureModule() {
@@ -178,67 +253,82 @@ function configureModule() {
   catalogPanel.classList.toggle("hidden", isReports || isPassword);
   reportsPanel.classList.toggle("hidden", !isReports);
   passwordPanel.classList.toggle("hidden", !isPassword);
+  document.querySelectorAll(".nav-button").forEach((button) => {
+    const isActive = button.dataset.module === activeModule;
+    button.classList.toggle("active", isActive);
+    if (isActive) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
   if (isPassword) {
     moduleTitle.textContent = "Cambiar mi contrasena";
-    document.querySelector("#moduleSubtitle").textContent = "La nueva contrasena debe tener al menos 10 caracteres, letras y numeros";
-  } else if (isReports) {
-    moduleTitle.textContent = "Reportes y consulta documental";
-    document.querySelector("#moduleSubtitle").textContent = "Creacion, PDF simulado, publicacion y filtros";
-    reportForm.classList.toggle("hidden", currentUser?.rol === "consulta");
-  } else {
+    moduleSubtitle.textContent = "Minimo 10 caracteres, con letras y numeros";
+    return;
+  }
+  if (isReports) {
+    const canEdit = currentUser?.rol !== "consulta";
+    moduleTitle.textContent = canEdit ? "Nuevo reporte de servicio" : "Reportes";
+    moduleSubtitle.textContent = canEdit
+      ? "Elija la institucion, los equipos y la plantilla; el sistema genera un PDF por equipo"
+      : "Consulta de reportes y documentos publicados";
+    reportForm.classList.toggle("hidden", !canEdit);
+    return;
+  }
   const config = modules[activeModule];
   moduleTitle.textContent = config.title;
-  document.querySelector("#moduleSubtitle").textContent = "CRUD conectado a PostgreSQL";
-  const isService = activeModule === "servicios";
-  const isProvider = activeModule === "proveedores";
-  const isMedicalEquipment = activeModule === "equipos_medicos";
-  const isUsers = activeModule === "usuarios";
-  recordForm.elements.telefono.classList.toggle("hidden", isService || isMedicalEquipment || isUsers);
-  recordForm.elements.correo.classList.toggle("hidden", isService || isMedicalEquipment);
-  recordForm.elements.extra.classList.toggle("hidden", isService || isMedicalEquipment || isUsers);
-  recordForm.elements.id_institucion.classList.toggle("hidden", !(isService || isMedicalEquipment));
-  recordForm.elements.id_institucion.required = isService || isMedicalEquipment;
-  recordForm.elements.logo_url.classList.toggle("hidden", !isProvider);
-  recordForm.elements.pie_pagina.classList.toggle("hidden", !isProvider);
-  recordForm.elements.id_rol.classList.toggle("hidden", !isUsers);
-  recordForm.elements.id_rol.required = isUsers;
-  recordForm.elements.password_temporal.classList.toggle("hidden", !isUsers);
-  recordForm.elements.password_temporal.required = isUsers && !recordForm.elements.id.value;
-  for (const field of ["numero_bien", "marca", "modelo", "numero_serie"]) {
-    recordForm.elements[field].classList.toggle("hidden", !isMedicalEquipment);
-  }
-  recordForm.elements.marca.required = isMedicalEquipment;
-  recordForm.elements.modelo.required = isMedicalEquipment;
-  if (!isService && !isMedicalEquipment) recordForm.elements.extra.placeholder = config.extraLabel;
-  recordForm.classList.toggle("hidden", currentUser?.rol === "consulta");
-  }
-  document.querySelectorAll(".nav-button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.module === activeModule);
+  moduleSubtitle.textContent = config.subtitle;
+  recordForm.querySelector('[data-field="nombre"] > span').textContent = config.nameLabel;
+  recordForm.querySelectorAll("[data-field]").forEach((label) => {
+    const name = label.dataset.field;
+    const control = recordForm.elements[name];
+    label.classList.toggle("hidden", !config.fields.includes(name));
+    control.required = config.required.includes(name);
   });
+  recordForm.classList.toggle("hidden", currentUser?.rol === "consulta");
+  activeCheck.classList.toggle("hidden", config.createOnly === true);
+  catalogSearch.value = "";
+  resetForm();
 }
 
-function renderRows(rows) {
+function resetForm() {
   const config = modules[activeModule];
-  tableHead.innerHTML = config.columns.map((column) => `<th>${column}</th>`).join("") + "<th>Acciones</th>";
-  tableBody.innerHTML = rows
-    .map(
-      (row) => `
-        <tr>
-          ${config.columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}
-          <td class="actions">
-            ${currentUser?.rol !== "consulta" ? `<button class="secondary" data-edit="${row[config.id]}">Editar</button>` : ""}
-            ${currentUser?.rol === "administrador" ? `<button class="secondary" data-delete="${row[config.id]}">Desactivar</button>` : ""}
-          </td>
-        </tr>
-      `
-    )
-    .join("");
+  recordForm.reset();
+  recordForm.elements.id.value = "";
+  recordForm.elements.activo.checked = config?.activeValue ?? true;
+  recordForm.classList.remove("editing");
+  if (!config) return;
+  recordFormTitle.textContent = `Nuevo ${config.singular}`;
+  const password = recordForm.elements.password_temporal;
+  password.required = activeModule === "usuarios";
+  password.closest("label").firstChild.textContent = "Contrasena temporal";
+}
+
+/* Catalogos */
+
+function renderRows() {
+  const config = modules[activeModule];
+  const query = normalizeSearch(catalogSearch.value.trim());
+  const rows = query
+    ? catalogRows.filter((row) => normalizeSearch(config.columns.map((column) => row[column]).join(" ")).includes(query))
+    : catalogRows;
+  catalogCount.textContent = `${rows.length} de ${catalogRows.length} registro(s)`;
+  tableHead.innerHTML = headerCells(config.columns);
+  if (!rows.length) {
+    tableBody.innerHTML = `<tr><td class="empty" colspan="${config.columns.length + 1}">No hay registros para mostrar.</td></tr>`;
+    return;
+  }
+  tableBody.innerHTML = rows.map((row) => `
+    <tr>
+      ${config.columns.map((column) => `<td>${renderCell(column, row[column])}</td>`).join("")}
+      <td class="actions">
+        ${currentUser?.rol !== "consulta" && !config.createOnly ? `<button class="secondary small" data-edit="${escapeHtml(row[config.id])}">Editar</button>` : ""}
+        ${currentUser?.rol === "administrador" && row.activo && !config.createOnly ? `<button class="secondary small danger-text" data-delete="${escapeHtml(row[config.id])}">Desactivar</button>` : ""}
+      </td>
+    </tr>`).join("");
 }
 
 async function loadRows() {
-  appMessage.textContent = "";
   const config = modules[activeModule];
-  if (["servicios", "equipos_medicos"].includes(activeModule)) {
+  if (config.fields.includes("id_institucion")) {
     const instituciones = await api("/api/instituciones");
     recordForm.elements.id_institucion.innerHTML = '<option value="">Seleccione institucion</option>' + instituciones
       .filter((item) => item.activo)
@@ -251,43 +341,235 @@ async function loadRows() {
       .map((item) => `<option value="${escapeHtml(item.id_rol)}">${escapeHtml(item.nombre)}</option>`)
       .join("");
   }
-  const rows = await api(config.endpoint);
-  renderRows(rows);
+  catalogRows = await api(config.endpoint);
+  renderRows();
+}
+
+catalogSearch.addEventListener("input", renderRows);
+
+recordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const config = modules[activeModule];
+  const values = Object.fromEntries(new FormData(recordForm));
+  const id = values.id;
+  const payload = { activo: config.activeValue ?? recordForm.elements.activo.checked };
+  for (const field of config.fields) {
+    if (field === "password_temporal" && !values.password_temporal) continue;
+    payload[field] = values[field];
+  }
+  try {
+    await api(id ? `${config.endpoint}/${id}` : config.endpoint, {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify(payload),
+    });
+    resetForm();
+    await loadRows();
+    showMessage(id ? "Cambios guardados." : "Registro creado.", "success");
+  } catch (error) {
+    showMessage(error.message);
+  }
+});
+
+tableBody.addEventListener("click", async (event) => {
+  const config = modules[activeModule];
+  const editId = event.target.dataset.edit;
+  const deleteId = event.target.dataset.delete;
+
+  if (editId) {
+    const row = catalogRows.find((item) => String(item[config.id]) === editId);
+    if (!row) return;
+    resetForm();
+    recordForm.elements.id.value = row[config.id];
+    for (const field of config.fields) {
+      if (field !== "password_temporal") recordForm.elements[field].value = row[field] ?? "";
+    }
+    recordForm.elements.activo.checked = row.activo;
+    if (activeModule === "usuarios") {
+      const password = recordForm.elements.password_temporal;
+      password.required = false;
+      password.closest("label").firstChild.textContent = "Nueva contrasena temporal (opcional)";
+    }
+    recordFormTitle.textContent = `Editar ${config.singular}: ${row.nombre}`;
+    recordForm.classList.add("editing");
+    recordForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    recordForm.elements.nombre.focus({ preventScroll: true });
+  }
+
+  if (deleteId) {
+    const row = catalogRows.find((item) => String(item[config.id]) === deleteId);
+    if (!window.confirm(`¿Desactivar "${row?.nombre ?? deleteId}"? Dejara de aparecer en los formularios.`)) return;
+    try {
+      await api(`${config.endpoint}/${deleteId}`, { method: "DELETE" });
+      await loadRows();
+      showMessage("Registro desactivado.", "success");
+    } catch (error) {
+      showMessage(error.message);
+    }
+  }
+});
+
+clearButton.addEventListener("click", resetForm);
+
+/* Reportes: institucion, servicio y equipos */
+
+function selectedInstitutionId() {
+  return reportForm.elements.id_institucion_reporte.value;
+}
+
+function equipmentForSelectedInstitution() {
+  const institution = selectedInstitutionId();
+  return institution
+    ? reportCatalogs.equipos_medicos.filter((item) => String(item.id_institucion) === institution)
+    : [];
+}
+
+function equipmentMeta(item) {
+  return [
+    item.numero_bien ? `Bien: ${item.numero_bien}` : null,
+    item.numero_serie ? `Serie: ${item.numero_serie}` : null,
+    [item.marca, item.modelo].filter(Boolean).join(" ") || null,
+  ].filter(Boolean).join(" · ");
+}
+
+function updateReportSummary() {
+  const count = selectedEquipmentIds.length;
+  reportSummary.textContent = count
+    ? `${count} equipo(s) seleccionado(s): se crearan ${count} borrador(es).`
+    : "Ningun equipo seleccionado.";
+}
+
+function renderSelectedEquipment() {
+  const rows = equipmentForSelectedInstitution().filter((item) => selectedEquipmentIds.includes(String(item.id)));
+  selectedEquipmentList.innerHTML = rows.map((item) => `
+    <div class="selected-equipment">
+      <div>
+        <span class="equipment-name">${escapeHtml(item.nombre)}</span>
+        <span class="equipment-meta">${escapeHtml(equipmentMeta(item))}</span>
+      </div>
+      <button type="button" class="secondary small" data-remove-equipment="${escapeHtml(item.id)}">Quitar</button>
+    </div>`).join("");
+  updateReportSummary();
+}
+
+function renderEquipmentSuggestions() {
+  const query = normalizeSearch(equipmentSearch.value.trim());
+  if (!query || !selectedInstitutionId()) {
+    equipmentSuggestions.classList.add("hidden");
+    equipmentSuggestions.innerHTML = "";
+    return;
+  }
+  const matches = equipmentForSelectedInstitution()
+    .filter((item) => !selectedEquipmentIds.includes(String(item.id)))
+    .filter((item) => normalizeSearch([
+      item.nombre, item.numero_bien, item.numero_serie, item.marca, item.modelo,
+    ].join(" ")).includes(query))
+    .slice(0, 10);
+  equipmentSuggestions.innerHTML = matches.length
+    ? matches.map((item) => `<button type="button" role="option" data-add-equipment="${escapeHtml(item.id)}">
+        <span class="equipment-name">${escapeHtml(item.nombre)}</span>
+        <span class="equipment-meta">${escapeHtml(equipmentMeta(item))}</span>
+      </button>`).join("")
+    : "<p>No hay coincidencias en esta institucion. Puede registrar el equipo como nuevo.</p>";
+  equipmentSuggestions.classList.remove("hidden");
+}
+
+function resetEquipmentSelection() {
+  selectedEquipmentIds = [];
+  equipmentSearch.value = "";
+  renderSelectedEquipment();
+  renderEquipmentSuggestions();
+}
+
+function fillServices() {
+  const institution = selectedInstitutionId();
+  const select = reportForm.elements.id_servicio_solicitante;
+  const services = reportCatalogs.servicios.filter((item) => String(item.id_institucion) === institution);
+  select.innerHTML = `<option value="">${institution ? "Seleccione servicio" : "Seleccione primero la institucion"}</option>`
+    + services.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.servicio)}</option>`).join("");
+  if (services.length === 1) select.value = String(services[0].id);
+  select.disabled = !institution;
+  equipmentSearch.disabled = !institution;
+  newEquipmentToggle.disabled = !institution;
+  equipmentSearch.placeholder = institution
+    ? "Buscar por numero de bien, serie, descripcion, marca o modelo"
+    : "Seleccione primero la institucion";
+}
+
+function onInstitutionChange() {
+  fillServices();
+  resetEquipmentSelection();
+  newEquipmentPanel.classList.add("hidden");
 }
 
 async function loadReportCatalogs() {
-  const data = await api("/api/reportes/catalogos");
-  reportCatalogs = data;
-  const fill = (name, rows, emptyLabel) => {
-    const select = reportForm.elements[name];
-    select.innerHTML = `<option value="">${escapeHtml(emptyLabel)}</option>` + rows
-      .map((row) => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.nombre)}</option>`)
-      .join("");
-  };
-  fill("id_servicio_solicitante", data.servicios, "Seleccione servicio");
-  fill("id_proveedor_plantilla", data.proveedores, "Seleccione proveedor y formato");
-  selectedEquipmentIds = [];
-  equipmentSearch.value = "";
-  renderSelectedEquipment();
-  renderEquipmentSuggestions();
+  reportCatalogs = await api("/api/reportes/catalogos");
+  const institutions = new Map();
+  for (const item of reportCatalogs.servicios) institutions.set(String(item.id_institucion), item.institucion);
+  reportForm.elements.id_institucion_reporte.innerHTML = '<option value="">Seleccione institucion</option>'
+    + [...institutions].map(([id, name]) => `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join("");
+  templateOptions.innerHTML = reportCatalogs.proveedores.length
+    ? reportCatalogs.proveedores.map((company, index) => `
+      <label class="template-option">
+        <input type="radio" name="id_proveedor_plantilla" value="${escapeHtml(company.id)}" ${index === 0 ? "required" : ""}>
+        <img src="${escapeHtml(company.plantilla.logo)}" alt="" width="170" height="64">
+        <span>${escapeHtml(company.nombre)}</span>
+        <small>${company.plantilla.pedido ? "Incluye pedido / NOG" : "Sin pedido / NOG"}</small>
+      </label>`).join("")
+    : '<p class="hint">No hay empresas activas con plantilla. Revise el modulo Empresas y proveedores.</p>';
+  resetReportForm();
 }
 
-reportForm.elements.id_servicio_solicitante.addEventListener("change", () => {
-  selectedEquipmentIds = [];
-  equipmentSearch.value = "";
-  renderSelectedEquipment();
-  renderEquipmentSuggestions();
+function resetReportForm() {
+  reportForm.reset();
+  reportForm.elements.fecha_reporte.value = todayIso();
+  reportForm.elements.titulo.dataset.auto = "1";
+  newEquipmentPanel.classList.add("hidden");
+  onInstitutionChange();
+  updateTemplatePreview();
+}
+
+reportForm.elements.id_institucion_reporte.addEventListener("change", onInstitutionChange);
+
+reportForm.elements.tipo_servicio.addEventListener("change", () => {
+  const title = reportForm.elements.titulo;
+  if (title.dataset.auto === "1" || !title.value.trim()) {
+    title.value = serviceTypeLabels[reportForm.elements.tipo_servicio.value] || "";
+    title.dataset.auto = "1";
+  }
+});
+
+reportForm.elements.titulo.addEventListener("input", (event) => {
+  event.target.dataset.auto = event.target.value.trim() ? "0" : "1";
 });
 
 equipmentSearch.addEventListener("input", renderEquipmentSuggestions);
 
-equipmentSuggestions.addEventListener("click", (event) => {
-  const id = event.target.dataset.addEquipment;
+equipmentSearch.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    equipmentSearch.value = "";
+    renderEquipmentSuggestions();
+  }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    equipmentSuggestions.querySelector("[data-add-equipment]")?.click();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".equipment-picker")) equipmentSuggestions.classList.add("hidden");
+});
+
+function addEquipment(id) {
   if (!id || selectedEquipmentIds.includes(id)) return;
   selectedEquipmentIds.push(id);
   equipmentSearch.value = "";
   renderSelectedEquipment();
   renderEquipmentSuggestions();
+}
+
+equipmentSuggestions.addEventListener("click", (event) => {
+  addEquipment(event.target.closest("[data-add-equipment]")?.dataset.addEquipment);
+  equipmentSearch.focus();
 });
 
 selectedEquipmentList.addEventListener("click", (event) => {
@@ -297,15 +579,219 @@ selectedEquipmentList.addEventListener("click", (event) => {
   renderSelectedEquipment();
 });
 
+function newEquipmentInputs() {
+  return Object.fromEntries([...newEquipmentPanel.querySelectorAll("[data-equipment]")]
+    .map((input) => [input.dataset.equipment, input]));
+}
+
+newEquipmentToggle.addEventListener("click", () => {
+  newEquipmentPanel.classList.toggle("hidden");
+  if (!newEquipmentPanel.classList.contains("hidden")) newEquipmentInputs().nombre.focus();
+});
+
+document.querySelector("#newEquipmentCancel").addEventListener("click", () => {
+  Object.values(newEquipmentInputs()).forEach((input) => { input.value = ""; });
+  newEquipmentPanel.classList.add("hidden");
+});
+
+document.querySelector("#newEquipmentSave").addEventListener("click", async () => {
+  const inputs = newEquipmentInputs();
+  const data = Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value.trim()]));
+  const missing = ["nombre", "marca", "modelo"].find((key) => !data[key]);
+  if (missing) {
+    showMessage("Complete descripcion, marca y modelo del equipo.");
+    inputs[missing].focus();
+    return;
+  }
+  if (!data.numero_bien && !data.numero_serie) {
+    showMessage("Indique el numero de bien o el numero de serie del equipo.");
+    inputs.numero_bien.focus();
+    return;
+  }
+  try {
+    const row = await api("/api/equipos-medicos", {
+      method: "POST",
+      body: JSON.stringify({ ...data, id_institucion: selectedInstitutionId(), activo: true }),
+    });
+    reportCatalogs.equipos_medicos.push({
+      id: row.id_equipo_medico, id_institucion: row.id_institucion, nombre: row.nombre,
+      numero_bien: row.numero_bien, numero_serie: row.numero_serie, marca: row.marca, modelo: row.modelo,
+    });
+    Object.values(inputs).forEach((input) => { input.value = ""; });
+    newEquipmentPanel.classList.add("hidden");
+    addEquipment(String(row.id_equipo_medico));
+    showMessage(`Equipo "${row.nombre}" registrado y agregado al reporte.`, "success");
+  } catch (error) {
+    showMessage(error.message);
+  }
+});
+
+/* Reportes: plantilla */
+
+function updateTemplatePreview() {
+  const selected = reportForm.querySelector('input[name="id_proveedor_plantilla"]:checked');
+  const company = reportCatalogs?.proveedores.find((item) => String(item.id) === selected?.value);
+  const template = company?.plantilla;
+  templatePreview.classList.toggle("hidden", !template);
+  document.querySelector("#pedidoField").classList.toggle("hidden", Boolean(template && !template.pedido));
+  if (!template) {
+    templateSheet.replaceChildren();
+    document.querySelector("#templateLink").removeAttribute("href");
+    return;
+  }
+  if (!template.pedido) reportForm.elements.numero_pedido_nog.value = "";
+  document.querySelector("#templateName").textContent = template.name;
+  document.querySelector("#templateLink").href = `/api/reportes/plantilla/${encodeURIComponent(company.id)}`;
+  templateSheet.dataset.template = template.key;
+  const field = (label) => `<div class="sheet-field"><strong>${label}</strong><span></span></div>`;
+  templateSheet.innerHTML = `
+    <div class="sheet-header">
+      <img src="${escapeHtml(template.logo)}" alt="${escapeHtml(template.name)}">
+      <strong>REPORTE DE SERVICIO</strong>
+    </div>
+    <p class="sheet-number">Muestra de plantilla</p>
+    <div class="sheet-columns">${field("FECHA")}${template.pedido ? field("NUMERO DE PEDIDO Y NOG") : ""}</div>
+    ${field("NOMBRE DEL CLIENTE / INSTITUCION")}
+    ${field("SERVICIO SOLICITANTE")}${field("DESCRIPCION DEL EQUIPO")}
+    <div class="sheet-columns">${field("MARCA")}${field("MODELO")}${field("NUMERO DE SERIE")}${field("NUMERO DE BIEN")}</div>
+    ${template.key === "meditec" ? '<p class="sheet-service-types">○ Garantia &nbsp; ○ Preventivo &nbsp; ○ Correctivo &nbsp; ○ Emergencia &nbsp; ○ Otros</p>' : ""}
+    <div class="sheet-section"><strong>DESCRIPCION DEL SERVICIO / ESPECIFICACIONES TECNICAS</strong><span></span></div>
+    <div class="sheet-section"><strong>RECOMENDACIONES</strong><span></span></div>
+    <div class="sheet-signatures">${template.signatures.map((signature) => `<div><strong>${escapeHtml(signature)}</strong><span>NOMBRE, FIRMA Y SELLO</span></div>`).join("")}</div>`;
+}
+
+templateOptions.addEventListener("change", updateTemplatePreview);
+
+/* Reportes: creacion y consulta */
+
+function writingWarnings(values) {
+  const warnings = [];
+  const fields = [
+    ["Asunto", values.titulo],
+    ["Descripción del servicio", values.especificaciones_tecnicas],
+    ["Recomendaciones", values.recomendaciones],
+  ];
+  for (const [label, rawValue] of fields) {
+    const value = String(rawValue || "").trim();
+    if (!value) continue;
+    if (/\s{2,}/.test(value)) warnings.push(`${label}: contiene espacios repetidos.`);
+    if (/\b([a-záéíóúñü]{3,})\s+\1\b/iu.test(value)) warnings.push(`${label}: parece contener una palabra repetida.`);
+    const letters = value.replace(/[^a-záéíóúñü]/giu, "");
+    if (letters.length > 20 && letters === letters.toUpperCase()) warnings.push(`${label}: revise el uso de mayúsculas.`);
+    if (value.length > 35 && !/[.!?;:]$/.test(value)) warnings.push(`${label}: considere agregar puntuación al final.`);
+  }
+  if (String(values.especificaciones_tecnicas || "").trim().length < 25) {
+    warnings.push("Descripción del servicio: detalle brevemente el trabajo realizado.");
+  }
+  return warnings;
+}
+
+function reviewField(label, value) {
+  return `<div class="review-field"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || "—")}</strong></div>`;
+}
+
+function openReportReview() {
+  if (selectedEquipmentIds.length === 0) {
+    showMessage("Agregue al menos un equipo al reporte.");
+    equipmentSearch.focus();
+    return;
+  }
+  showMessage("");
+  const values = Object.fromEntries(new FormData(reportForm));
+  const selectedCompany = reportCatalogs.proveedores.find((item) => String(item.id) === values.id_proveedor_plantilla);
+  const equipment = equipmentForSelectedInstitution().filter((item) => selectedEquipmentIds.includes(String(item.id)));
+  const warnings = writingWarnings(values);
+  reviewWarnings.innerHTML = warnings.length
+    ? `<h3>Revise estas observaciones</h3><ul>${warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul>
+       <p>Use “Volver y corregir” si necesita hacer cambios. El corrector del navegador también está activo en los campos de texto.</p>`
+    : "<p><strong>Revisión básica completada.</strong> No se detectaron problemas evidentes. Compruebe nombres y términos técnicos antes de continuar.</p>";
+  reviewWarnings.classList.toggle("ok", warnings.length === 0);
+  reviewContent.innerHTML = `
+    <section>
+      <h3>Atención</h3>
+      <div class="review-grid">
+        ${reviewField("Institución", reportForm.elements.id_institucion_reporte.selectedOptions[0]?.textContent)}
+        ${reviewField("Servicio solicitante", reportForm.elements.id_servicio_solicitante.selectedOptions[0]?.textContent)}
+        ${reviewField("Fecha", formatDate(values.fecha_reporte))}
+        ${reviewField("Plantilla", selectedCompany?.nombre)}
+        ${reviewField("Tipo de servicio", serviceTypeLabels[values.tipo_servicio])}
+        ${reviewField("Asunto", values.titulo)}
+      </div>
+    </section>
+    <section>
+      <h3>${equipment.length} ${equipment.length === 1 ? "equipo" : "equipos"} · se publicará un PDF por equipo</h3>
+      <div class="review-equipment">${equipment.map((item) => `
+        <div><strong>${escapeHtml(item.nombre)}</strong><span>${escapeHtml(equipmentMeta(item) || "Sin identificadores adicionales")}</span></div>`).join("")}</div>
+    </section>
+    <section>
+      <h3>Contenido técnico</h3>
+      ${reviewField("Descripción del servicio", values.especificaciones_tecnicas)}
+      ${reviewField("Recomendaciones", values.recomendaciones)}
+    </section>`;
+  reportReviewDialog.showModal();
+}
+
+reportForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  openReportReview();
+});
+
+function closeReportReview() {
+  reportReviewDialog.close();
+}
+
+document.querySelector("#reviewBack").addEventListener("click", closeReportReview);
+document.querySelector("#reviewClose").addEventListener("click", closeReportReview);
+reportReviewDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeReportReview();
+});
+
+reviewConfirm.addEventListener("click", async () => {
+  const values = Object.fromEntries(new FormData(reportForm));
+  delete values.id_institucion_reporte;
+  values.id_equipos_medicos = selectedEquipmentIds;
+  values.publicar = true;
+  reviewConfirm.disabled = true;
+  reviewConfirm.textContent = "Creando y publicando…";
+  const previewWindow = window.open("about:blank", "_blank");
+  try {
+    const result = await api("/api/reportes", {
+      method: "POST",
+      body: JSON.stringify(values),
+    });
+    const reportes = result.reportes || [result];
+    closeReportReview();
+    resetReportForm();
+    await loadReports();
+    if (previewWindow && reportes[0]) previewWindow.location = `/api/reportes/${reportes[0].id_reporte}/archivo`;
+    showMessage(`${reportes.length} reporte(s) publicado(s): ${reportes.map((item) => item.codigo_reporte).join(", ")}.`, "success");
+  } catch (error) {
+    if (previewWindow) previewWindow.close();
+    reviewWarnings.classList.remove("ok");
+    reviewWarnings.innerHTML = `<h3>No se pudo publicar</h3><p>${escapeHtml(error.message)} Revise los datos o inténtelo nuevamente.</p>`;
+    reviewWarnings.scrollIntoView({ block: "nearest" });
+    showMessage(error.message);
+  } finally {
+    reviewConfirm.disabled = false;
+    reviewConfirm.textContent = "Crear y publicar PDF";
+  }
+});
+
 function renderReports(rows) {
-  const columns = ["codigo_reporte", "titulo", "fecha_reporte", "estado", "servicio_solicitante", "institucion", "proveedor_plantilla", "url_archivo"];
-  reportTableHead.innerHTML = columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("") + "<th>Acciones</th>";
+  const columns = ["codigo_reporte", "fecha_reporte", "institucion", "servicio_solicitante", "proveedor_plantilla", "titulo", "estado"];
+  reportTableHead.innerHTML = headerCells(columns);
+  if (!rows.length) {
+    reportTableBody.innerHTML = `<tr><td class="empty" colspan="${columns.length + 1}">No se encontraron reportes.</td></tr>`;
+    return;
+  }
+  const canEdit = currentUser?.rol !== "consulta";
   reportTableBody.innerHTML = rows.map((row) => `<tr>
-    ${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}
+    ${columns.map((column) => `<td>${renderCell(column, row[column])}</td>`).join("")}
     <td class="actions">
-      ${row.estado === "borrador" ? `<button class="secondary" data-preview="${row.id_reporte}">Vista previa</button>` : ""}
-      ${currentUser?.rol !== "consulta" && row.estado === "borrador" ? `<button class="secondary" data-publish="${row.id_reporte}">Publicar</button>` : ""}
-      ${row.url_archivo ? `<button class="secondary" data-file="${row.id_reporte}">Ver PDF</button>` : ""}
+      ${row.estado === "borrador" ? `<button class="secondary small" data-preview="${row.id_reporte}">Vista previa</button>` : ""}
+      ${canEdit && row.estado === "borrador" ? `<button class="small" data-publish="${row.id_reporte}" data-code="${escapeHtml(row.codigo_reporte)}">Publicar</button>` : ""}
+      ${row.url_archivo ? `<button class="secondary small" data-file="${row.id_reporte}">Ver PDF</button>` : ""}
     </td>
   </tr>`).join("");
 }
@@ -315,6 +801,36 @@ async function loadReports() {
   const query = new URLSearchParams(Object.entries(values).filter(([, value]) => value));
   renderReports(await api(`/api/reportes?${query}`));
 }
+
+reportFilterForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await loadReports().catch((error) => showMessage(error.message));
+});
+
+reportTableBody.addEventListener("click", async (event) => {
+  const { preview, file, publish, code } = event.target.dataset;
+  if (preview) {
+    window.open(`/api/reportes/${preview}/vista-previa`, "_blank");
+    return;
+  }
+  if (file) {
+    window.open(`/api/reportes/${file}/archivo`, "_blank");
+    return;
+  }
+  if (!publish) return;
+  if (!window.confirm(`¿Publicar ${code}? Se generara y almacenara el PDF definitivo.`)) return;
+  event.target.disabled = true;
+  try {
+    await api(`/api/reportes/${publish}/publicar`, { method: "POST" });
+    await loadReports();
+    showMessage(`Reporte ${code} publicado y almacenado.`, "success");
+  } catch (error) {
+    event.target.disabled = false;
+    showMessage(error.message);
+  }
+});
+
+/* Navegacion y cuenta */
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -328,181 +844,28 @@ loginForm.addEventListener("submit", async (event) => {
     });
     const payload = await result.json();
     if (!result.ok) throw new Error(payload.error);
-    showApp(payload.usuario);
-    configureModule();
-    if (activeModule !== "password") await loadRows();
+    loginForm.reset();
+    await showApp(payload.usuario);
   } catch (error) {
     loginMessage.textContent = error.message;
   }
 });
 
 document.querySelectorAll(".nav-button").forEach((button) => {
-  button.addEventListener("click", async () => {
+  button.addEventListener("click", () => {
     if (currentUser?.debe_cambiar_password && button.dataset.module !== "password") {
-      appMessage.textContent = "Debe cambiar la contrasena temporal antes de continuar";
+      showMessage("Debe cambiar la contrasena temporal antes de continuar.");
       return;
     }
-    activeModule = button.dataset.module;
-    resetForm();
-    configureModule();
-    if (activeModule === "reportes") {
-      await loadReportCatalogs();
-      await loadReports();
-    } else if (activeModule !== "password") {
-      await loadRows();
-    }
+    openModule(button.dataset.module);
   });
 });
-
-reportForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  appMessage.textContent = "";
-  const values = Object.fromEntries(new FormData(reportForm));
-  if (selectedEquipmentIds.length === 0) {
-    appMessage.textContent = "Seleccione al menos un equipo por nombre, numero de bien o serie";
-    return;
-  }
-  values.id_equipos_medicos = selectedEquipmentIds;
-  const previewWindow = window.open("about:blank", "_blank");
-  try {
-    const result = await api("/api/reportes", {
-      method: "POST",
-      body: JSON.stringify(values),
-    });
-    const reportes = result.reportes || [result];
-    reportForm.reset();
-    await loadReportCatalogs();
-    await loadReports();
-    if (previewWindow && reportes[0]) previewWindow.location = `/api/reportes/${reportes[0].id_reporte}/vista-previa`;
-    appMessage.textContent = `${reportes.length} borrador(es) creado(s): ${reportes.map((item) => item.codigo_reporte).join(", ")}. Revise cada vista previa antes de publicar.`;
-  } catch (error) {
-    if (previewWindow) previewWindow.close();
-    appMessage.textContent = error.message;
-  }
-});
-
-reportFilterForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await loadReports().catch((error) => { appMessage.textContent = error.message; });
-});
-
-reportTableBody.addEventListener("click", async (event) => {
-  const previewId = event.target.dataset.preview;
-  const fileId = event.target.dataset.file;
-  const id = event.target.dataset.publish;
-  if (previewId) {
-    window.open(`/api/reportes/${previewId}/vista-previa`, "_blank");
-    return;
-  }
-  if (fileId) {
-    window.open(`/api/reportes/${fileId}/archivo`, "_blank");
-    return;
-  }
-  if (!id) return;
-  try {
-    const result = await api(`/api/reportes/${id}/publicar`, { method: "POST" });
-    await loadReports();
-    appMessage.textContent = `Reporte publicado en ${result.ubicacion}`;
-  } catch (error) {
-    appMessage.textContent = error.message;
-  }
-});
-
-recordForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const config = modules[activeModule];
-  const values = Object.fromEntries(new FormData(recordForm));
-  const id = values.id;
-  const payload = {
-    nombre: values.nombre,
-    telefono: values.telefono,
-    correo: values.correo,
-    [config.extraField]: values.extra,
-    activo: recordForm.elements.activo.checked,
-  };
-  if (activeModule === "servicios") {
-    payload.id_institucion = values.id_institucion;
-    delete payload.telefono;
-    delete payload.correo;
-    delete payload[config.extraField];
-  }
-  if (activeModule === "equipos_medicos") {
-    payload.id_institucion = values.id_institucion;
-    payload.numero_bien = values.numero_bien;
-    payload.marca = values.marca;
-    payload.modelo = values.modelo;
-    payload.numero_serie = values.numero_serie;
-    delete payload.telefono;
-    delete payload.correo;
-    delete payload[config.extraField];
-  }
-  if (activeModule === "proveedores") {
-    payload.logo_url = values.logo_url;
-    payload.pie_pagina = values.pie_pagina;
-  }
-  if (activeModule === "usuarios") {
-    payload.id_rol = values.id_rol;
-    if (values.password_temporal) payload.password_temporal = values.password_temporal;
-    delete payload.telefono;
-    delete payload[config.extraField];
-  }
-
-  try {
-    await api(id ? `${config.endpoint}/${id}` : config.endpoint, {
-      method: id ? "PUT" : "POST",
-      body: JSON.stringify(payload),
-    });
-    resetForm();
-    await loadRows();
-  } catch (error) {
-    appMessage.textContent = error.message;
-  }
-});
-
-tableBody.addEventListener("click", async (event) => {
-  const config = modules[activeModule];
-  const editId = event.target.dataset.edit;
-  const deleteId = event.target.dataset.delete;
-
-  if (editId) {
-    const rows = await api(config.endpoint);
-    const row = rows.find((item) => String(item[config.id]) === editId);
-    recordForm.elements.id.value = row[config.id];
-    recordForm.elements.nombre.value = row.nombre || "";
-    recordForm.elements.telefono.value = row.telefono || "";
-    recordForm.elements.correo.value = row.correo || "";
-    recordForm.elements.extra.value = row[config.extraField] || "";
-    recordForm.elements.id_institucion.value = row.id_institucion || "";
-    recordForm.elements.logo_url.value = row.logo_url || "";
-    recordForm.elements.pie_pagina.value = row.pie_pagina || "";
-    recordForm.elements.numero_bien.value = row.numero_bien || "";
-    recordForm.elements.marca.value = row.marca || "";
-    recordForm.elements.modelo.value = row.modelo || "";
-    recordForm.elements.numero_serie.value = row.numero_serie || "";
-    recordForm.elements.id_rol.value = row.id_rol || "";
-    if (activeModule === "usuarios") {
-      const roles = await api("/api/roles");
-      const role = roles.find((item) => item.nombre === row.rol);
-      recordForm.elements.id_rol.value = role?.id_rol || "";
-      recordForm.elements.password_temporal.required = false;
-      recordForm.elements.password_temporal.placeholder = "Use Restablecer para cambiarla";
-    }
-    recordForm.elements.activo.checked = row.activo;
-  }
-
-  if (deleteId) {
-    await api(`${config.endpoint}/${deleteId}`, { method: "DELETE" });
-    await loadRows();
-  }
-});
-
-clearButton.addEventListener("click", resetForm);
 
 passwordForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(passwordForm));
   if (values.password_nueva !== values.password_confirmacion) {
-    appMessage.textContent = "La confirmacion no coincide";
+    showMessage("La confirmacion no coincide con la nueva contrasena.");
     return;
   }
   try {
@@ -510,31 +873,19 @@ passwordForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify(values),
     });
-    currentUser = result.usuario;
     passwordForm.reset();
-    passwordNotice.textContent = "Contrasena actualizada correctamente.";
-    activeModule = "servicios";
-    configureModule();
-    await loadRows();
-    appMessage.textContent = "Contrasena actualizada correctamente";
+    await showApp(result.usuario);
+    showMessage("Contrasena actualizada correctamente.", "success");
   } catch (error) {
-    appMessage.textContent = error.message;
+    showMessage(error.message);
   }
 });
 
 logoutButton.addEventListener("click", async () => {
   await api("/api/logout", { method: "POST" }).catch(() => null);
-  appView.classList.add("hidden");
-  loginView.classList.remove("hidden");
+  showLogin();
 });
 
 api("/api/session")
-  .then(async ({ usuario }) => {
-    showApp(usuario);
-    configureModule();
-    if (activeModule !== "password") await loadRows();
-  })
-  .catch(() => {
-    appView.classList.add("hidden");
-    loginView.classList.remove("hidden");
-  });
+  .then(({ usuario }) => showApp(usuario))
+  .catch(() => showLogin());

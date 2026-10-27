@@ -6,6 +6,7 @@ const { rateLimit } = require("express-rate-limit");
 const helmet = require("helmet");
 const { Pool } = require("pg");
 const { generateReportPdf } = require("./pdf-report");
+const { resolveReportTemplate } = require("./report-templates");
 const { deletePdf, getPdf, putPdf } = require("./storage");
 const { validateEquipmentIds } = require("./report-batch");
 const { validatePassword } = require("./user-security");
@@ -208,6 +209,28 @@ app.get("/api/roles", requireAuth, requireRole("administrador"), asyncHandler(as
     "SELECT id_rol, nombre, descripcion FROM roles WHERE activo=TRUE ORDER BY id_rol"
   );
   res.json(result.rows);
+}));
+
+// Registro de constancia: estas computadoras no habilitan permisos y siempre se guardan inactivas.
+app.get("/api/equipos-autorizados", requireAuth, requireRole("administrador"), asyncHandler(async (_req, res) => {
+  const result = await pool.query(
+    `SELECT id_equipo_autorizado, nombre, identificador_equipo, descripcion, activo, creado_en
+     FROM equipos_autorizados ORDER BY id_equipo_autorizado DESC`
+  );
+  res.json(result.rows);
+}));
+
+app.post("/api/equipos-autorizados", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const nombre = normalizeText(req.body.nombre, "nombre", 100, true);
+  const identificador = normalizeText(req.body.identificador_equipo, "identificador_equipo", 160, true);
+  const descripcion = normalizeText(req.body.descripcion, "descripcion", 1000);
+  const result = await pool.query(
+    `INSERT INTO equipos_autorizados (nombre, identificador_equipo, descripcion, activo)
+     VALUES ($1, $2, $3, FALSE)
+     RETURNING id_equipo_autorizado, nombre, identificador_equipo, descripcion, activo, creado_en`,
+    [nombre, identificador, descripcion]
+  );
+  res.status(201).json(result.rows[0]);
 }));
 
 app.get("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandler(async (_req, res) => {
@@ -460,14 +483,13 @@ app.post("/api/proveedores", requireAuth, requireRole(...allowedEditors), asyncH
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
   const direccion = normalizeText(req.body.direccion, "direccion", 1000);
-  const logoUrl = normalizeText(req.body.logo_url, "logo_url", 1000);
   const piePagina = normalizeText(req.body.pie_pagina, "pie_pagina", 2000);
   const activo = normalizeActive(req.body.activo);
   const result = await pool.query(
-    `INSERT INTO proveedores (nombre, nit, telefono, correo, direccion, logo_url, pie_pagina, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO proveedores (nombre, nit, telefono, correo, direccion, pie_pagina, activo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id_proveedor, nombre, nit, telefono, correo, direccion, logo_url, pie_pagina, activo`,
-    [nombre, nit, telefono, correo, direccion, logoUrl, piePagina, activo]
+    [nombre, nit, telefono, correo, direccion, piePagina, activo]
   );
   res.status(201).json(result.rows[0]);
 }));
@@ -480,15 +502,14 @@ app.put("/api/proveedores/:id", requireAuth, requireRole(...allowedEditors), asy
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
   const direccion = normalizeText(req.body.direccion, "direccion", 1000);
-  const logoUrl = normalizeText(req.body.logo_url, "logo_url", 1000);
   const piePagina = normalizeText(req.body.pie_pagina, "pie_pagina", 2000);
   const activo = normalizeActive(req.body.activo);
   const result = await pool.query(
     `UPDATE proveedores SET nombre=$1, nit=$2, telefono=$3, correo=$4, direccion=$5,
-       logo_url=$6, pie_pagina=$7, activo=$8
-     WHERE id_proveedor=$9
+       pie_pagina=$6, activo=$7
+     WHERE id_proveedor=$8
      RETURNING id_proveedor, nombre, nit, telefono, correo, direccion, logo_url, pie_pagina, activo`,
-    [nombre, nit, telefono, correo, direccion, logoUrl, piePagina, activo, id]
+    [nombre, nit, telefono, correo, direccion, piePagina, activo, id]
   );
   if (!result.rows[0]) return res.status(404).json({ error: "Registro no encontrado" });
   res.json(result.rows[0]);
@@ -523,6 +544,8 @@ app.post("/api/equipos-medicos", requireAuth, requireRole(...allowedEditors), as
     normalizeText(req.body.numero_serie, "numero_serie", 100),
     normalizeActive(req.body.activo),
   ];
+  // El reporte identifica el equipo por bien o serie; uno de los dos es obligatorio.
+  if (!values[2] && !values[5]) throw invalidInput("Indique el numero de bien o el numero de serie");
   const result = await pool.query(
     `INSERT INTO equipos_medicos (id_institucion,nombre,numero_bien,marca,modelo,numero_serie,activo)
      VALUES ($1,$2,$3,$4,$5,$6,$7)
@@ -563,15 +586,34 @@ app.delete("/api/equipos-medicos/:id", requireAuth, requireRole("administrador")
 app.get("/api/reportes/catalogos", requireAuth, asyncHandler(async (_req, res) => {
   const [servicios, proveedores, equiposMedicos] = await Promise.all([
     pool.query(`SELECT ss.id_servicio_solicitante AS id, ss.id_institucion,
-      ss.nombre || ' - ' || i.nombre AS nombre
+      ss.nombre || ' - ' || i.nombre AS nombre, ss.nombre AS servicio, i.nombre AS institucion
       FROM servicios_solicitantes ss JOIN instituciones i ON i.id_institucion=ss.id_institucion
       WHERE ss.activo=TRUE AND i.activo=TRUE ORDER BY i.nombre, ss.nombre`),
-    pool.query("SELECT id_proveedor AS id, nombre FROM proveedores WHERE activo=TRUE ORDER BY nombre"),
+    pool.query("SELECT id_proveedor AS id, nombre, codigo_plantilla FROM proveedores WHERE activo=TRUE ORDER BY nombre"),
     pool.query(`SELECT id_equipo_medico AS id, id_institucion, nombre,
       numero_bien, numero_serie, marca, modelo
       FROM equipos_medicos WHERE activo=TRUE ORDER BY nombre`),
   ]);
-  res.json({ servicios: servicios.rows, proveedores: proveedores.rows, equipos_medicos: equiposMedicos.rows });
+  const empresas = proveedores.rows.map((provider) => ({
+    ...provider, plantilla: resolveReportTemplate(provider.nombre, provider.codigo_plantilla),
+  })).filter((provider) => provider.plantilla.key !== "generic");
+  res.json({ servicios: servicios.rows, proveedores: empresas, equipos_medicos: equiposMedicos.rows });
+}));
+
+// Vista de la plantilla elegida: no crea reportes, archivos ni registros de auditoria.
+app.get("/api/reportes/plantilla/:id", requireAuth, asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Empresa invalida");
+  const result = await pool.query("SELECT nombre, codigo_plantilla FROM proveedores WHERE id_proveedor=$1 AND activo=TRUE", [id]);
+  const company = result.rows[0];
+  if (!company || resolveReportTemplate(company.nombre, company.codigo_plantilla).key === "generic") {
+    return res.status(404).json({ error: "La empresa no tiene una plantilla disponible" });
+  }
+  const pdf = await generateReportPdf({ proveedor: company.nombre, codigo_plantilla: company.codigo_plantilla });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Content-Disposition", "inline; filename=plantilla.pdf");
+  res.send(pdf);
 }));
 
 app.get("/api/reportes", requireAuth, asyncHandler(async (req, res) => {
@@ -599,10 +641,14 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
     : validateEquipmentIds([req.body.id_equipo_medico]);
   if (!servicioId) throw invalidInput("Servicio invalido");
   if (!proveedorId) throw invalidInput("Proveedor principal invalido");
-  const equipo = process.env.AUTHORIZED_DEVICE_ID || (process.env.NODE_ENV !== "production" ? "MEDI-GEN-001" : "");
-  if (!equipo) throw new Error("AUTHORIZED_DEVICE_ID es obligatorio en produccion");
+  const company = await pool.query("SELECT nombre, codigo_plantilla FROM proveedores WHERE id_proveedor=$1 AND activo=TRUE", [proveedorId]);
+  if (!company.rows[0] || resolveReportTemplate(company.rows[0].nombre, company.rows[0].codigo_plantilla).key === "generic") {
+    throw invalidInput("Seleccione Teknor, Meditec o GT Medical como empresa prestadora");
+  }
+  if (req.body.publicar !== undefined && typeof req.body.publicar !== "boolean") {
+    throw invalidInput("publicar debe ser booleano");
+  }
   const titulo = normalizeText(req.body.titulo, "titulo", 180, true);
-  const descripcion = normalizeText(req.body.descripcion, "descripcion", 4000);
   const fecha = normalizeText(req.body.fecha_reporte, "fecha", 10, true);
   const pedido = normalizeText(req.body.numero_pedido_nog, "numero_pedido_nog", 80);
   const tipo = normalizeText(req.body.tipo_servicio, "tipo_servicio", 40, true);
@@ -617,29 +663,28 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
     const created = [];
     for (const equipoMedicoId of equipoMedicoIds) {
       const result = await client.query(
-        `INSERT INTO reportes (
-           codigo_reporte, id_servicio_solicitante, id_equipo_medico, id_proveedor_plantilla,
-           id_usuario_creador, id_equipo_autorizado, titulo, descripcion, fecha_reporte,
-           numero_pedido_nog, descripcion_equipo, marca, modelo, numero_serie,
-           numero_bien, tipo_servicio, especificaciones_tecnicas, recomendaciones
-         )
-         SELECT generar_codigo_reporte(), $1, $2, $3, $4, e.id_equipo_autorizado,
-           $5, $6, $7, $8, em.nombre, em.marca, em.modelo, em.numero_serie,
-           em.numero_bien, $9, $10, $11
-         FROM equipos_autorizados e
-         JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante=$1 AND ss.activo=TRUE
-         JOIN instituciones i ON i.id_institucion=ss.id_institucion AND i.activo=TRUE
-         JOIN proveedores p ON p.id_proveedor=$3 AND p.activo=TRUE
-         JOIN equipos_medicos em ON em.id_equipo_medico=$2 AND em.activo=TRUE
-           AND em.id_institucion=ss.id_institucion
-         WHERE e.identificador_equipo=$12 AND e.activo=TRUE
-         RETURNING id_reporte, codigo_reporte, estado`,
+         `INSERT INTO reportes (
+            codigo_reporte, id_servicio_solicitante, id_equipo_medico, id_proveedor_plantilla,
+            id_usuario_creador, titulo, fecha_reporte,
+            numero_pedido_nog, descripcion_equipo, marca, modelo, numero_serie,
+            numero_bien, tipo_servicio, especificaciones_tecnicas, recomendaciones
+          )
+          SELECT generar_codigo_reporte(), $1, $2, $3, $4,
+            $5, $6, $7, em.nombre, em.marca, em.modelo, em.numero_serie,
+            em.numero_bien, $8, $9, $10
+          FROM servicios_solicitantes ss
+          JOIN instituciones i ON i.id_institucion=ss.id_institucion AND i.activo=TRUE
+          JOIN proveedores p ON p.id_proveedor=$3 AND p.activo=TRUE
+          JOIN equipos_medicos em ON em.id_equipo_medico=$2 AND em.activo=TRUE
+            AND em.id_institucion=ss.id_institucion
+          WHERE ss.id_servicio_solicitante=$1 AND ss.activo=TRUE
+          RETURNING id_reporte, codigo_reporte, estado`,
         [servicioId, equipoMedicoId, proveedorId, req.session.id_usuario,
-          titulo, descripcion, fecha, pedido, tipo, especificaciones, recomendaciones, equipo]
+          titulo, fecha, pedido, tipo, especificaciones, recomendaciones]
       );
       if (!result.rows[0]) {
         await client.query("ROLLBACK");
-        return res.status(403).json({ error: "Todos los equipos deben pertenecer a la institucion del servicio" });
+        return res.status(400).json({ error: "Todos los equipos deben estar activos y pertenecer a la institucion del servicio" });
       }
       await client.query(
         "INSERT INTO reporte_proveedor (id_reporte, id_proveedor, observacion) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",
@@ -648,7 +693,10 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
       created.push(result.rows[0]);
     }
     await client.query("COMMIT");
-    return res.status(201).json(isBatch ? { reportes: created } : created[0]);
+    const completed = req.body.publicar
+      ? await Promise.all(created.map((report) => publishReport(report.id_reporte, req.session.id_usuario)))
+      : created;
+    return res.status(201).json(isBatch ? { reportes: completed } : completed[0]);
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -661,7 +709,7 @@ async function loadReportDetail(id) {
   const result = await pool.query(
     `SELECT r.*, TO_CHAR(r.fecha_reporte, 'DD/MM/YYYY') AS fecha_reporte_texto,
        ss.nombre AS servicio_solicitante, i.nombre AS institucion,
-       p.nombre AS proveedor, p.logo_url, p.pie_pagina
+       p.nombre AS proveedor, p.codigo_plantilla, p.logo_url, p.pie_pagina
      FROM reportes r
      JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante=r.id_servicio_solicitante
      JOIN instituciones i ON i.id_institucion=ss.id_institucion
@@ -671,6 +719,30 @@ async function loadReportDetail(id) {
   const report = result.rows[0];
   if (report) report.fecha_reporte = report.fecha_reporte_texto;
   return report;
+}
+
+async function publishReport(id, userId) {
+  const report = await loadReportDetail(id);
+  if (!report) throw Object.assign(new Error("Reporte no encontrado"), { status: 404 });
+  if (report.estado !== "borrador") throw invalidInput("Solo se publican reportes en borrador");
+  const pdf = await generateReportPdf(report);
+  const hash = crypto.createHash("sha256").update(pdf).digest("hex");
+  const key = `reportes/${new Date().getFullYear()}/${report.codigo_reporte}.pdf`;
+  await putPdf(key, pdf);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("CALL reemplazar_pdf_reporte($1, $2, $3, $4, $5)", [id, key, hash, pdf.length, userId]);
+    await client.query("CALL publicar_reporte($1, $2)", [id, userId]);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    await deletePdf(key).catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
+  return { id_reporte: id, codigo_reporte: report.codigo_reporte, estado: "publicado", url_archivo: key };
 }
 
 app.get("/api/reportes/:id/vista-previa", requireAuth, asyncHandler(async (req, res) => {
@@ -687,27 +759,8 @@ app.get("/api/reportes/:id/vista-previa", requireAuth, asyncHandler(async (req, 
 app.post("/api/reportes/:id/publicar", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) throw invalidInput("Identificador invalido");
-  const report = await loadReportDetail(id);
-  if (!report) return res.status(404).json({ error: "Reporte no encontrado" });
-  if (report.estado !== "borrador") throw invalidInput("Solo se publican reportes en borrador");
-  const pdf = await generateReportPdf(report);
-  const hash = crypto.createHash("sha256").update(pdf).digest("hex");
-  const key = `reportes/${new Date().getFullYear()}/${report.codigo_reporte}.pdf`;
-  await putPdf(key, pdf);
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query("CALL reemplazar_pdf_reporte($1, $2, $3, $4, $5)", [id, key, hash, pdf.length, req.session.id_usuario]);
-    await client.query("CALL publicar_reporte($1, $2)", [id, req.session.id_usuario]);
-    await client.query("COMMIT");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    await deletePdf(key).catch(() => null);
-    throw error;
-  } finally {
-    client.release();
-  }
-  res.json({ ok: true, ubicacion: key });
+  const published = await publishReport(id, req.session.id_usuario);
+  res.json({ ok: true, ubicacion: published.url_archivo });
 }));
 
 app.get("/api/reportes/:id/archivo", requireAuth, asyncHandler(async (req, res) => {
@@ -724,11 +777,16 @@ app.get("/api/reportes/:id/archivo", requireAuth, asyncHandler(async (req, res) 
 }));
 
 app.use((err, _req, res, _next) => {
+  if (["42703", "42P01"].includes(err.code)) {
+    return res.status(503).json({ error: "La base de datos requiere actualizacion. Aplique las migraciones pendientes segun INSTALL.md" });
+  }
   if (err.code === "23505") return res.status(409).json({ error: "El registro ya existe" });
   if (["22007", "22008", "23502", "23503", "P0001"].includes(err.code)) {
     return res.status(400).json({ error: "La operacion no cumple las reglas de datos" });
   }
-  if (err.status === 400) return res.status(400).json({ error: err.message });
+  if (Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ error: err.message });
+  }
   console.error(err);
   res.status(500).json({ error: "Error interno de la aplicacion" });
 });

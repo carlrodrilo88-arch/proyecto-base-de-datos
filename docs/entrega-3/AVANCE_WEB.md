@@ -15,7 +15,7 @@ borrador, vista previa, generacion, publicacion y consulta de reportes PDF.
 | Modulo | Funciones | Estado |
 | --- | --- | --- |
 | Autenticacion | Login bcrypt, sesion firmada, cambio obligatorio y cierre de sesion | Implementado |
-| Usuarios | Alta, rol, activacion y restablecimiento por administrador | Implementado; migracion 004 pendiente de aplicar |
+| Usuarios | Alta, rol, activacion y restablecimiento por administrador | Implementado; migracion 004 aplicada localmente |
 | Servicios | CRUD y relacion obligatoria con institucion | Implementado |
 | Tecnicos | CRUD con especialidad y estado | Implementado |
 | Instituciones | CRUD de datos de contacto | Implementado |
@@ -60,7 +60,7 @@ entorno. PostgreSQL conserva clave del objeto, hash, tamano, estado y versiones.
   contrasenas aprobadas.
 - Casos SQL, roles, triggers, procedimientos y flujo API documentados en
   `docs/casos-prueba/casos-prueba-iniciales.md`.
-- `npm run test:db` aprobo esquema y permisos despues de las migraciones 002 y 003.
+- `npm run test:db` aprobo esquema y permisos despues de las migraciones 002, 003 y 004.
 - El flujo integrado creo, previsualizo, publico y recupero un PDF valido como
   evidencia; resta la comprobacion visual del grupo en el navegador.
 
