@@ -10,19 +10,19 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('consulta', 'Puede buscar y visualizar reportes autorizados')
 ON CONFLICT (nombre) DO NOTHING;
 
-INSERT INTO usuarios (id_rol, nombre, correo, password_hash, debe_cambiar_password)
-SELECT r.id_rol, v.nombre, v.correo, v.password_hash, TRUE
+INSERT INTO usuarios (id_rol, nombre, usuario, correo, password_hash, debe_cambiar_password)
+SELECT r.id_rol, v.nombre, v.usuario, v.correo, v.password_hash, TRUE
 FROM (
     VALUES
-        ('administrador', 'Administrador Meditec', 'admin@meditec.local',
+        ('administrador', 'Administrador Meditec', 'admin', 'admin@meditec.local',
          '$2b$12$lDVGawQEi9GKWL0coD7F5OitpC/rgCQZoo4pAz9P4PN9z9JgAljia'),
-        ('generador_reportes', 'Generador Meditec', 'generador@meditec.local',
+        ('generador_reportes', 'Generador Meditec', 'generador', 'generador@meditec.local',
          '$2b$12$e0U3ISqGeZv4JdvZTLKu7..VnAhkCpuc1UEfbIg3JRy3Xe7Kh5FNu'),
-        ('consulta', 'Consulta Meditec', 'consulta@meditec.local',
+        ('consulta', 'Consulta Meditec', 'consulta', 'consulta@meditec.local',
          '$2b$12$TZvdH3363vVRxj5SpN6kb.bz/5lopVzBGeDP2hWk4MfjFPirp3eJK')
-) AS v(rol, nombre, correo, password_hash)
+) AS v(rol, nombre, usuario, correo, password_hash)
 JOIN roles r ON r.nombre = v.rol
-ON CONFLICT (correo) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO equipos_autorizados (nombre, identificador_equipo, descripcion, activo) VALUES
 ('Equipo generador 1', 'MEDI-GEN-001', 'Constancia de computadora utilizada en el proyecto', FALSE),

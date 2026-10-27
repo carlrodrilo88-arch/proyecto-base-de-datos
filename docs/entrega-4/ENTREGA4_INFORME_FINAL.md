@@ -8,7 +8,7 @@ a PostgreSQL, genera un código único, produce un PDF corporativo de una sola
 hoja por equipo y conserva el archivo publicado con su historial y auditoría.
 
 El ambiente final local fue validado sobre PostgreSQL 15.2, Node.js/Express y
-PDFKit. Las 27 pruebas automatizadas y la verificación de esquema y privilegios
+PDFKit. Las 29 pruebas automatizadas y la verificación de esquema y privilegios
 finalizaron correctamente.
 
 ## Problema y objetivos
@@ -78,7 +78,7 @@ fuera de Git.
 
 ## Pruebas y resultados
 
-- `npm test`: 27 aprobadas, 0 fallidas.
+- `npm test`: 29 aprobadas, 0 fallidas.
 - `npm run test:db`: esquema y permisos aprobados.
 - `/api/health`: conexión operativa con PostgreSQL.
 - Acceso administrativo y cambio obligatorio de contraseña verificados.

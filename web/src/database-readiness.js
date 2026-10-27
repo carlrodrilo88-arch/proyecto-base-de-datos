@@ -33,7 +33,12 @@ async function main() {
         SELECT 1 FROM information_schema.columns
         WHERE table_schema='public' AND table_name='proveedores'
           AND column_name='codigo_plantilla'
-      ) AS codigo_plantilla
+      ) AS codigo_plantilla,
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema='public' AND table_name='usuarios'
+          AND column_name='usuario'
+      ) AS usuario_acceso
   `);
   const result = checks.rows[0];
   const failed = Object.entries(result).filter(([, value]) => !value).map(([key]) => key);

@@ -19,7 +19,7 @@ la revisión visual documentada.
 
 | Código | Prueba | Resultado esperado | Resultado | Estado |
 | --- | --- | --- | --- | --- |
-| CP-E4-A01 | Ejecutar `npm test` | Todas las pruebas finalizan sin fallos | 27 aprobadas, 0 fallidas | Aprobado |
+| CP-E4-A01 | Ejecutar `npm test` | Todas las pruebas finalizan sin fallos | 29 aprobadas, 0 fallidas | Aprobado |
 | CP-E4-A02 | Validar plantillas por código estable | Resolver Teknor, Meditec y GT Medical | Tres formatos resueltos | Aprobado |
 | CP-E4-A03 | Generar PDF normal | Archivo válido de una página con logo y firmas | Tres plantillas válidas | Aprobado |
 | CP-E4-A04 | Enviar contenido excesivo | Rechazar sin recortar ni crear segunda página | Error controlado de una hoja | Aprobado |

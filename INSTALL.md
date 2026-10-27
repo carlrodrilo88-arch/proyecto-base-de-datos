@@ -23,11 +23,18 @@ sql/triggers/001_reportes.sql
 sql/dml/001_seed.sql
 sql/dml/002_empresas_reportes.sql
 sql/dml/003_carga_excel_equipos.sql
+sql/dml/004_usuario_administrador.sql
 sql/views/001_reportes_resumen.sql
 sql/security/001_roles_permisos.sql
 sql/security/002_usuario_web.sql
 sql/queries/001_consultas_entrega3.sql
 ```
+
+`sql/dml/001_seed.sql` crea datos y usuarios de demostracion con contrasenas
+conocidas; usarlo solo en una base local de pruebas. En una instalacion publica
+se omiten `001_seed.sql` y `sql/queries/001_consultas_entrega3.sql`; los roles y
+la cuenta administradora `carlos` los crea `004_usuario_administrador.sql`, con
+una contrasena temporal que el sistema obliga a cambiar en el primer ingreso.
 
 ## Ejemplo con psql
 
@@ -38,6 +45,7 @@ psql -U postgres -d meditec_reportes -f sql/triggers/001_reportes.sql
 psql -U postgres -d meditec_reportes -f sql/dml/001_seed.sql
 psql -U postgres -d meditec_reportes -f sql/dml/002_empresas_reportes.sql
 psql -U postgres -d meditec_reportes -f sql/dml/003_carga_excel_equipos.sql
+psql -U postgres -d meditec_reportes -f sql/dml/004_usuario_administrador.sql
 psql -U postgres -d meditec_reportes -f sql/views/001_reportes_resumen.sql
 psql -U postgres -d meditec_reportes -f sql/security/001_roles_permisos.sql
 psql -U postgres -d meditec_reportes -f sql/security/002_usuario_web.sql
@@ -86,6 +94,8 @@ psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/003_catalogo_
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/004_administracion_usuarios.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/005_plantillas_observaciones.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/006_constancia_equipos_autorizados.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/007_usuario_acceso.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/dml/004_usuario_administrador.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/001_roles_permisos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/002_usuario_web.sql
 ```
@@ -112,6 +122,10 @@ para aplicar estos cambios.
 La sexta migracion convierte `equipos_autorizados` en un registro de constancia:
 las computadoras se conservan inactivas y no intervienen en la publicacion. La
 autorizacion efectiva depende del usuario autenticado y de su rol en la web.
+
+La septima migracion agrega `usuarios.usuario` para iniciar sesion con nombre de
+usuario o correo, y vuelve opcional el correo. Los usuarios existentes reciben
+como usuario la parte de su correo anterior a la arroba (por ejemplo, `admin`).
 
 ### Aplicacion y validacion de la migracion 005
 

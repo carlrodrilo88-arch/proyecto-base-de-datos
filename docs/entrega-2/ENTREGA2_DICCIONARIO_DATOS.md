@@ -21,7 +21,8 @@ Sistema de Gestion Documental y Reportes para Meditec.
 | id_usuario    | BIGSERIAL    | PK                                  | Identificador del usuario.           |
 | id_rol        | BIGINT       | NOT NULL, FK                        | Rol asignado.                        |
 | nombre        | VARCHAR(120) | NOT NULL                            | Nombre del usuario.                  |
-| correo        | VARCHAR(160) | NOT NULL, UNIQUE                    | Correo usado para login.             |
+| usuario       | VARCHAR(60)  | NOT NULL, UNIQUE, CHECK formato     | Nombre de usuario para login.        |
+| correo        | VARCHAR(160) | UNIQUE                              | Correo opcional; tambien sirve para login. |
 | password_hash | TEXT         | NOT NULL                            | Contrasena almacenada como hash.     |
 | activo        | BOOLEAN      | NOT NULL, DEFAULT TRUE              | Indica si puede ingresar al sistema. |
 | creado_en     | TIMESTAMP    | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de creacion.                   |

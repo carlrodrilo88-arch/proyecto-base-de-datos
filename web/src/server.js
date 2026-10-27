@@ -9,7 +9,7 @@ const { generateReportPdf } = require("./pdf-report");
 const { resolveReportTemplate } = require("./report-templates");
 const { deletePdf, getPdf, putPdf } = require("./storage");
 const { validateEquipmentIds } = require("./report-batch");
-const { validatePassword } = require("./user-security");
+const { validatePassword, normalizeUsername } = require("./user-security");
 const {
   clearSessionCookie,
   createSessionCookie,
@@ -127,19 +127,21 @@ const loginLimiter = rateLimit({
 });
 
 app.post("/api/login", loginLimiter, asyncHandler(async (req, res) => {
-  const correo = typeof req.body.correo === "string" ? req.body.correo.trim().toLowerCase() : "";
+  // Se acepta el nombre de usuario o el correo; "correo" se conserva por compatibilidad.
+  const rawIdentifier = req.body.usuario ?? req.body.correo;
+  const identificador = typeof rawIdentifier === "string" ? rawIdentifier.trim().toLowerCase() : "";
   const password = typeof req.body.password === "string" ? req.body.password : "";
-  if (!correo || !password || correo.length > 160 || password.length > 128) {
-    return res.status(400).json({ error: "Correo y contrasena son obligatorios" });
+  if (!identificador || !password || identificador.length > 160 || password.length > 128) {
+    return res.status(400).json({ error: "Usuario y contrasena son obligatorios" });
   }
 
   const result = await pool.query(
-    `SELECT u.id_usuario, u.nombre, u.correo, u.password_hash,
+    `SELECT u.id_usuario, u.nombre, u.usuario, u.correo, u.password_hash,
             u.debe_cambiar_password, r.nombre AS rol
      FROM usuarios u
      INNER JOIN roles r ON r.id_rol = u.id_rol
-     WHERE u.correo = $1 AND u.activo = TRUE`,
-    [correo]
+     WHERE (u.usuario = $1 OR u.correo = $1) AND u.activo = TRUE`,
+    [identificador]
   );
 
   const user = result.rows[0];
@@ -151,13 +153,14 @@ app.post("/api/login", loginLimiter, asyncHandler(async (req, res) => {
   const token = signToken({
     id_usuario: user.id_usuario,
     nombre: user.nombre,
+    usuario: user.usuario,
     correo: user.correo,
     rol: user.rol,
     debe_cambiar_password: user.debe_cambiar_password,
   }, sessionSecret);
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Set-Cookie", createSessionCookie(token, process.env.NODE_ENV === "production"));
-  res.json({ usuario: { nombre: user.nombre, correo: user.correo, rol: user.rol,
+  res.json({ usuario: { nombre: user.nombre, usuario: user.usuario, correo: user.correo, rol: user.rol,
     debe_cambiar_password: user.debe_cambiar_password } });
 }));
 
@@ -166,6 +169,7 @@ app.get("/api/session", requireAuth, (req, res) => {
   res.json({
     usuario: {
       nombre: req.session.nombre,
+      usuario: req.session.usuario,
       correo: req.session.correo,
       rol: req.session.rol,
       debe_cambiar_password: req.session.debe_cambiar_password,
@@ -235,7 +239,7 @@ app.post("/api/equipos-autorizados", requireAuth, requireRole("administrador"), 
 
 app.get("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandler(async (_req, res) => {
   const result = await pool.query(
-    `SELECT u.id_usuario, u.id_rol, u.nombre, u.correo, r.nombre AS rol,
+    `SELECT u.id_usuario, u.id_rol, u.nombre, u.usuario, u.correo, r.nombre AS rol,
             u.debe_cambiar_password, u.activo, u.creado_en
      FROM usuarios u JOIN roles r ON r.id_rol=u.id_rol
      ORDER BY u.id_usuario DESC`
@@ -245,17 +249,17 @@ app.get("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandler
 
 app.post("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
   const nombre = normalizeText(req.body.nombre, "nombre", 120, true);
+  const usuario = normalizeUsername(req.body.usuario);
   const correo = normalizeEmail(req.body.correo);
-  if (!correo) throw invalidInput("El correo es obligatorio");
   const rolId = parseId(req.body.id_rol);
   if (!rolId) throw invalidInput("El rol es obligatorio");
   const password = validatePassword(req.body.password_temporal, "password_temporal");
   const hash = await bcrypt.hash(password, 12);
   const result = await pool.query(
-    `INSERT INTO usuarios (id_rol,nombre,correo,password_hash,debe_cambiar_password,activo)
-     SELECT id_rol,$1,$2,$3,TRUE,TRUE FROM roles WHERE id_rol=$4 AND activo=TRUE
-     RETURNING id_usuario,nombre,correo,debe_cambiar_password,activo`,
-    [nombre, correo.toLowerCase(), hash, rolId]
+    `INSERT INTO usuarios (id_rol,nombre,usuario,correo,password_hash,debe_cambiar_password,activo)
+     SELECT id_rol,$1,$2,$3,$4,TRUE,TRUE FROM roles WHERE id_rol=$5 AND activo=TRUE
+     RETURNING id_usuario,nombre,usuario,correo,debe_cambiar_password,activo`,
+    [nombre, usuario, correo?.toLowerCase() ?? null, hash, rolId]
   );
   if (!result.rows[0]) throw invalidInput("El rol seleccionado no existe");
   res.status(201).json(result.rows[0]);
@@ -266,8 +270,8 @@ app.put("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHan
   const rolId = parseId(req.body.id_rol);
   if (!id || !rolId) throw invalidInput("Usuario o rol invalido");
   const nombre = normalizeText(req.body.nombre, "nombre", 120, true);
+  const usuario = normalizeUsername(req.body.usuario);
   const correo = normalizeEmail(req.body.correo);
-  if (!correo) throw invalidInput("El correo es obligatorio");
   const activo = normalizeActive(req.body.activo);
   if (id === req.session.id_usuario && !activo) throw invalidInput("No puede desactivar su propio usuario");
   const role = await pool.query("SELECT nombre FROM roles WHERE id_rol=$1 AND activo=TRUE", [rolId]);
@@ -285,10 +289,11 @@ app.put("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHan
   const result = await pool.query(
     `UPDATE usuarios u SET nombre=$1,correo=$2,id_rol=$3,activo=$4,
        password_hash=COALESCE($6,password_hash),
-       debe_cambiar_password=CASE WHEN $6::text IS NULL THEN debe_cambiar_password ELSE TRUE END
+       debe_cambiar_password=CASE WHEN $6::text IS NULL THEN debe_cambiar_password ELSE TRUE END,
+       usuario=$7
      FROM roles r WHERE u.id_usuario=$5 AND r.id_rol=$3 AND r.activo=TRUE
-     RETURNING u.id_usuario,u.nombre,u.correo,u.debe_cambiar_password,u.activo`,
-    [nombre, correo.toLowerCase(), rolId, activo, id, temporaryHash]
+     RETURNING u.id_usuario,u.nombre,u.usuario,u.correo,u.debe_cambiar_password,u.activo`,
+    [nombre, correo?.toLowerCase() ?? null, rolId, activo, id, temporaryHash, usuario]
   );
   if (!result.rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
   res.json(result.rows[0]);

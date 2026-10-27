@@ -28,7 +28,7 @@ los casos manuales que aún no cuentan con evidencia.
 | Estándares de aplicación | Cumple | Capas, errores controlados, validación y consultas parametrizadas. |
 | Credenciales fuera del repositorio | Cumple | `.env` y almacenamiento ignorados. |
 | Bitácora IA actualizada | Cumple | Bitácora consolidada existente; no se modifica en esta certificación. |
-| Pruebas automatizadas | Cumple | 27 aprobadas, 0 fallidas. |
+| Pruebas automatizadas | Cumple | 29 aprobadas, 0 fallidas. |
 | Pruebas de base | Cumple | `npm run test:db` aprobado en PostgreSQL 15.2. |
 | Plantillas PDF | Cumple | Tres formatos, una hoja, recomendaciones y firmas, sin observaciones. |
 | Manual técnico | Cumple | `ENTREGA4_MANUAL_TECNICO.md`. |

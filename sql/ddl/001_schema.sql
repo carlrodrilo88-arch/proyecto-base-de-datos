@@ -20,11 +20,14 @@ CREATE TABLE usuarios (
     id_usuario BIGSERIAL PRIMARY KEY,
     id_rol BIGINT NOT NULL,
     nombre VARCHAR(120) NOT NULL,
-    correo VARCHAR(160) NOT NULL UNIQUE,
+    usuario VARCHAR(60) NOT NULL,
+    correo VARCHAR(160) UNIQUE,
     password_hash TEXT NOT NULL,
     debe_cambiar_password BOOLEAN NOT NULL DEFAULT TRUE,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_usuarios_usuario UNIQUE (usuario),
+    CONSTRAINT ck_usuarios_usuario_formato CHECK (usuario ~ '^[a-z0-9._-]{3,60}$'),
     CONSTRAINT fk_usuarios_roles
         FOREIGN KEY (id_rol)
         REFERENCES roles(id_rol)

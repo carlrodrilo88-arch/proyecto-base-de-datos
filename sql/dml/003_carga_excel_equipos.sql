@@ -7,6 +7,9 @@
 -- Generado automaticamente; se puede ejecutar varias veces sin duplicar.
 -- Un numero de bien identifica un solo equipo por institucion.
 
+-- El archivo esta en UTF-8; evita que psql en Windows lo lea como WIN1252.
+SET client_encoding = 'UTF8';
+
 BEGIN;
 
 INSERT INTO instituciones (nombre)

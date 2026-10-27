@@ -26,8 +26,8 @@
               <h2>Iniciar sesión</h2>
               <p>Ingresa con tu cuenta para continuar.</p>
             </div>
-            <label class="field">Correo electrónico
-              <input name="correo" type="email" autocomplete="username" placeholder="nombre@empresa.com" required>
+            <label class="field">Usuario o correo
+              <input name="usuario" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="160" placeholder="Tu usuario" required>
             </label>
             <label class="field">Contraseña
               <input name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
@@ -78,6 +78,9 @@
               <div class="form-grid">
                 <label class="field" data-field="nombre"><span>Nombre</span>
                   <input name="nombre" maxlength="180" required>
+                </label>
+                <label class="field" data-field="usuario">Usuario
+                  <input name="usuario" maxlength="60" autocomplete="off" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9._\-]{3,60}" title="Entre 3 y 60 letras, numeros, punto, guion o guion bajo">
                 </label>
                 <label class="field" data-field="id_institucion">Institucion
                   <select name="id_institucion"></select>

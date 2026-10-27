@@ -126,7 +126,7 @@ npm run test:db
 
 Validación del 27/10/2026:
 
-- 27 pruebas Node aprobadas y 0 fallidas.
+- 29 pruebas Node aprobadas y 0 fallidas.
 - Esquema y permisos de `meditec_web` aprobados.
 - `/api/health` respondió correctamente.
 - Tres plantillas PDF renderizadas visualmente en una sola hoja.

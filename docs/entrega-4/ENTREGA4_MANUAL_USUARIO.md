@@ -10,7 +10,7 @@ publicados. La aplicación está dirigida a usuarios autorizados de Meditec.
 
 1. Inicie el servidor según el manual técnico.
 2. Abra `http://localhost:3000`.
-3. Escriba el correo y la contraseña asignados.
+3. Escriba el nombre de usuario o correo y la contraseña asignados.
 4. Pulse **Ingresar al sistema**.
 
 Si la cuenta tiene una contraseña temporal, el sistema abrirá únicamente el
