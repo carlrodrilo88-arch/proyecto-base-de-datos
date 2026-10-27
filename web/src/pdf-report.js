@@ -60,8 +60,8 @@ function field(doc, template, label, value, x, y, width = WIDTH) {
     .text(label, x, y, { width, lineBreak: false });
   doc.font("Helvetica").fontSize(10).fillColor("#111111");
   const text = String(value || "—");
-  const height = doc.heightOfString(text, { width });
-  doc.text(text, x, y + 14, { width });
+  const height = doc.heightOfString(text, { width, align: "center" });
+  doc.text(text, x, y + 14, { width, align: "center" });
   return y + 14 + height + 12;
 }
 
