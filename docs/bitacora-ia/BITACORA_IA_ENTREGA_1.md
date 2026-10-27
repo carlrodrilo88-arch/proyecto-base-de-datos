@@ -1,5 +1,18 @@
 # Bitacora consolidada de Agentes IA
 
+## Registro 22
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 27/10/2026 |
+| Herramienta | Claude Code / Claude Opus 5.5 |
+| Objetivo | Probar y rectificar la carga de datos del Excel antes de confirmarla en la base de datos, para asegurar que los registros fueran completos, sin duplicados y compatibles con las restricciones del esquema. |
+| Prompt utilizado | Se solicito validar la carga de instituciones, servicios solicitantes y equipos medicos antes de aplicarla, y corregir cualquier diferencia entre los datos del Excel y las reglas de la base de datos. |
+| Resultado obtenido | La primera generacion del script reconocio solo 5 instituciones y 47 equipos, porque la comparacion de nombres no consideraba las comas; se rectifico la normalizacion y la carga paso a 6 instituciones, 96 servicios y 285 equipos. Se detectaron numeros de bien repetidos que habrian violado la restriccion `uq_equipo_bien_institucion`; por indicacion del responsable se rectificaron dejando un solo equipo por bien. Tambien se completo el encabezado del script con autor y dependencias para cumplir el estandar S3. |
+| Validacion del grupo | Proyecto individual validado por Carlos. La carga se probo en una transaccion revertida (`ROLLBACK`) sin modificar datos; una segunda ejecucion dentro de la misma prueba no agrego registros. Despues de aplicarla en `meditec_reportes` se comprobo con una conexion nueva el conteo de servicios y equipos por institucion, y se confirmo que los datos previos no cambiaron. |
+| Estandares aplicados | S3, S4, S7, S8 y D1. |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
 ## Registro 21
 
 | Campo | Detalle |
