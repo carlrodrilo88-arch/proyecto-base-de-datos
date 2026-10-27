@@ -17,7 +17,7 @@ function s3Config() {
     client: new S3Client({
       region: process.env.STORAGE_REGION || process.env.REGION || "auto",
       endpoint: process.env.STORAGE_ENDPOINT || process.env.ENDPOINT,
-      forcePathStyle: true,
+      forcePathStyle: process.env.STORAGE_FORCE_PATH_STYLE === "true",
       credentials: {
         accessKeyId: process.env.STORAGE_ACCESS_KEY_ID || process.env.ACCESS_KEY_ID,
         secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY || process.env.SECRET_ACCESS_KEY,
