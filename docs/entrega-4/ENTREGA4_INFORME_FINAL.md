@@ -93,8 +93,8 @@ fuera de Git.
 
 - La aplicación está publicada en
   https://meditec-web-production.up.railway.app. El 27/10/2026 se verificó
-  `/api/health` y el acceso de administrador; la publicación de un PDF en el
-  Bucket de Railway sigue pendiente de evidencia.
+  `/api/health`, el acceso de administrador y la publicación de un PDF en el
+  Bucket de Railway.
 - La interfaz de reportes filtra actualmente por código y estado; los filtros
   por fecha, institución, servicio y técnico existen en SQL, pero no todos están
   expuestos en la pantalla.

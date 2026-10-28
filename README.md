@@ -114,7 +114,7 @@ Las credenciales no se publican en el repositorio.
 
 La aplicación local, PostgreSQL, los permisos y las pruebas automatizadas están
 validados. La instalación limpia y el despliegue público se ejecutaron en
-Railway el 27/10/2026 y la versión quedó marcada con el tag `entrega-4`. La
-publicación de PDF en el Bucket, algunos casos manuales, los datos mínimos por
-cada tabla principal y la defensa permanecen pendientes y están declarados en
-el informe final.
+Railway el 27/10/2026, incluida la publicación de PDF en el Bucket, y la versión
+quedó marcada con el tag `entrega-4`. Algunos casos manuales, los datos mínimos
+por cada tabla principal y la defensa permanecen pendientes y están declarados
+en el informe final.

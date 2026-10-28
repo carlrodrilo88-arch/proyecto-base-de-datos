@@ -7,7 +7,15 @@ const templates = {
   meditec: {
     key: "meditec", name: "Meditec", logo: "/logos/meditec.png",
     color: "#0074c8", pedido: true,
-    signatures: ["SERVICIO TECNICO MEDITEC", "SERVICIO TECNICO BIOMEDICA", "SERVICIO SOLICITANTE"],
+    signatures: ["SERVICIO TECNICO MEDITEC", "Servicio técnico Biomédica", "SERVICIO SOLICITANTE"],
+    signatureNote: "NOMBRE, FIRMA, SELLO",
+    // En el formato impreso la firma central queda un renglon mas abajo.
+    staggerSignatures: true,
+    footer: {
+      left: ['MEDITEC "tu mejor diagnóstico"', "ASISTENCIA TÉCNICA INDUSTRIAL Y BIOMÉDICA"],
+      right: ["EMERGENCIAS 24 Hrs: 5690-2338 • 2293-0161", "www.meditecgt.com",
+        "ventas@meditecgt.com • ventasmeditec2@gmail.com"],
+    },
   },
   gtmedical: {
     key: "gtmedical", name: "GT Medical", logo: "/logos/gt-medical.png",

@@ -46,13 +46,25 @@ function drawPage(doc, template, report, continuation) {
     doc.font("Helvetica").fontSize(8).fillColor(template.color)
       .text("Continuacion del reporte", LEFT, 105, { lineBreak: false });
   }
-  doc.font("Helvetica").fontSize(7).fillColor("#345478")
-    .text(report.pie_pagina || `${template.name} · Reporte de servicio`, LEFT, 746,
-      { width: WIDTH, height: 28, align: "center" });
+  if (template.footer) {
+    drawFooter(doc, template);
+  } else {
+    doc.font("Helvetica").fontSize(7).fillColor("#345478")
+      .text(report.pie_pagina || `${template.name} · Reporte de servicio`, LEFT, 746,
+        { width: WIDTH, height: 28, align: "center" });
+  }
   doc.restore();
   doc.font("Helvetica").fontSize(10).fillColor("#111111");
   doc.x = LEFT;
   doc.y = 125;
+}
+
+// Pie fijo de la empresa: identidad a la izquierda y contacto a la derecha.
+function drawFooter(doc, template) {
+  const y = 682;
+  doc.font("Helvetica-Bold").fontSize(7.5).fillColor(template.color)
+    .text(template.footer.left.join("\n"), LEFT, y, { width: 240, align: "center", lineGap: 2 })
+    .text(template.footer.right.join("\n"), LEFT + WIDTH - 280, y, { width: 280, align: "right", lineGap: 2 });
 }
 
 function field(doc, template, label, value, x, y, width = WIDTH) {
@@ -92,14 +104,14 @@ function section(doc, template, label, value, y, height) {
 }
 
 function drawSignatures(doc, template) {
-  const y = 610;
   template.signatures.forEach((title, index) => {
     const x = LEFT + index * 179;
+    const y = 610 + (template.staggerSignatures && index === 1 ? 14 : 0);
     doc.moveTo(x + 10, y).lineTo(x + 159, y).strokeColor(template.color).stroke();
     doc.font("Helvetica-Bold").fontSize(7).fillColor(template.color)
       .text(title, x, y + 8, { width: 169, align: "center" });
     doc.font("Helvetica").fontSize(7)
-      .text("NOMBRE, FIRMA Y SELLO", x, y + 30, { width: 169, align: "center" });
+      .text(template.signatureNote || "NOMBRE, FIRMA Y SELLO", x, y + 30, { width: 169, align: "center" });
   });
 }
 

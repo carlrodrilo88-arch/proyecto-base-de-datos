@@ -48,6 +48,5 @@
 
 La trazabilidad confirma el núcleo funcional y técnico. Permanecen pendientes
 los filtros web completos, asignación visual de técnicos, control original por
-dispositivo, publicación de PDF en el Bucket y volumen mínimo en todas las
-tablas principales. Estos
+dispositivo y volumen mínimo en todas las tablas principales. Estos
 puntos se declaran para evitar certificar como terminado algo que no fue probado.

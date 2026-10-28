@@ -58,8 +58,9 @@ for (const company of ["Teknor", "Meditec", "GT Medical"]) {
       assert.ok(text.includes(marker), `Falta imprimir ${marker}`);
     }
     assert.equal(text.includes("OBSERVACIONES"), false);
-    assert.ok(text.includes("NOMBRE, FIRMA Y SELLO"));
+    assert.ok(text.includes(company === "Meditec" ? "NOMBRE, FIRMA, SELLO" : "NOMBRE, FIRMA Y SELLO"));
     assert.equal(text.includes("PEDIDOMARKER"), company !== "Teknor");
+    assert.equal(text.includes("www.meditecgt.com"), company === "Meditec");
   });
 }
 
