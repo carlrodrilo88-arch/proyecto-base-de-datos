@@ -28,7 +28,7 @@
 | RNF-03 Integridad referencial | PK, FK, UNIQUE, CHECK y acciones referenciales | Cumple |
 | RNF-04 Identificadores únicos | Secuencia y restricción única | Cumple |
 | RNF-05 Consultas indexadas | Índices y vista resumen | Cumple |
-| RNF-06 Acceso desde web | Express y PostgreSQL integrados | Cumple local; despliegue pendiente |
+| RNF-06 Acceso desde web | Express y PostgreSQL integrados; publicado en https://meditec-web-production.up.railway.app | Cumple |
 | RNF-07 Sin credenciales | `.env` y almacenamiento excluidos de Git | Cumple |
 | RNF-08 Crecimiento futuro | Migraciones, historial PDF y almacenamiento S3 | Cumple |
 
@@ -48,5 +48,6 @@
 
 La trazabilidad confirma el núcleo funcional y técnico. Permanecen pendientes
 los filtros web completos, asignación visual de técnicos, control original por
-dispositivo, despliegue y volumen mínimo en todas las tablas principales. Estos
+dispositivo, publicación de PDF en el Bucket y volumen mínimo en todas las
+tablas principales. Estos
 puntos se declaran para evitar certificar como terminado algo que no fue probado.

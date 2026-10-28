@@ -101,9 +101,20 @@ en `http://localhost:3000/api/health`.
 - [Certificación](docs/certificaciones/CERTIFICACION_ENTREGA_4.md)
 - [Plantillas de reportes](docs/entrega-4/PLANTILLAS_REPORTES.md)
 
+## Aplicación publicada
+
+La aplicación está desplegada en Railway:
+[https://meditec-web-production.up.railway.app](https://meditec-web-production.up.railway.app)
+
+El estado de la base publicada se consulta en
+[`/api/health`](https://meditec-web-production.up.railway.app/api/health).
+Las credenciales no se publican en el repositorio.
+
 ## Estado de cierre
 
 La aplicación local, PostgreSQL, los permisos y las pruebas automatizadas están
-validados. El despliegue público, la instalación limpia final, algunos casos
-manuales, los datos mínimos por cada tabla principal, la defensa y el tag
-`entrega-4` permanecen pendientes y están declarados en el informe final.
+validados. La instalación limpia y el despliegue público se ejecutaron en
+Railway el 27/10/2026 y la versión quedó marcada con el tag `entrega-4`. La
+publicación de PDF en el Bucket, algunos casos manuales, los datos mínimos por
+cada tabla principal y la defensa permanecen pendientes y están declarados en
+el informe final.

@@ -16,7 +16,7 @@
 El responsable certifica que el código y los documentos incluidos fueron
 revisados contra la rúbrica, que las pruebas marcadas como aprobadas fueron
 ejecutadas y que los resultados pendientes se declaran expresamente. No se
-certifican como terminados el despliegue, la defensa, la instalación limpia ni
+certifican como terminados la publicación de PDF en el Bucket, la defensa ni
 los casos manuales que aún no cuentan con evidencia.
 
 ## Lista de verificacion
@@ -35,11 +35,11 @@ los casos manuales que aún no cuentan con evidencia.
 | Manual de usuario | Cumple | `ENTREGA4_MANUAL_USUARIO.md`. |
 | Informe y trazabilidad | Cumple | Informe final y matriz final incluidos. |
 | Datos mínimos por tabla principal | Pendiente | No todas las tablas principales alcanzan 50 registros. |
-| Instalación limpia final | Pendiente | Documentada, pero no ejecutada en una base PostgreSQL 15 vacía. |
-| Despliegue público | Pendiente | Railway y Bucket no validados. |
+| Instalación limpia final | Cumple | Ejecutada el 27/10/2026 en una base vacía de Railway (PostgreSQL 18.6), sin `001_seed.sql`. |
+| Despliegue público | Cumple parcialmente | https://meditec-web-production.up.railway.app; `/api/health` responde 200 y el login de administrador funciona. Falta evidencia de un PDF publicado en el Bucket. |
 | Flujos manuales finales | Pendiente | Publicación real, segundo rol y lote requieren evidencia. |
 | Defensa oral | Pendiente | Debe realizarla el responsable. |
-| Tag `entrega-4` | Pendiente | Crear únicamente después de cerrar los puntos aceptados. |
+| Tag `entrega-4` | Cumple | Creado el 27/10/2026; los puntos pendientes de esta lista se aceptan como limitaciones declaradas. |
 
 ## Firma
 

@@ -91,16 +91,18 @@ fuera de Git.
 
 ## Limitaciones
 
-- El despliegue público y el Bucket persistente de Railway siguen pendientes de
-  validación final.
+- La aplicación está publicada en
+  https://meditec-web-production.up.railway.app. El 27/10/2026 se verificó
+  `/api/health` y el acceso de administrador; la publicación de un PDF en el
+  Bucket de Railway sigue pendiente de evidencia.
 - La interfaz de reportes filtra actualmente por código y estado; los filtros
   por fecha, institución, servicio y técnico existen en SQL, pero no todos están
   expuestos en la pantalla.
 - La asignación de técnicos a un reporte está modelada en la base, pero no forma
   parte del formulario final.
 - La auditoría se genera en la base, pero no tiene un módulo web de consulta.
-- La instalación desde cero está documentada; la validación local realizada fue
-  sobre una base existente migrada a PostgreSQL 15.2.
+- La validación local fue sobre una base existente migrada a PostgreSQL 15.2.
+  La instalación desde cero se ejecutó en Railway sobre PostgreSQL 18.6.
 - El requisito general de 50 registros por cada tabla principal no se cumple en
   técnicos, proveedores, usuarios e instituciones. Sí existe volumen superior a
   50 en servicios y equipos médicos.

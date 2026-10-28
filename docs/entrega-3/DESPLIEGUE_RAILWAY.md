@@ -39,6 +39,21 @@ la base actual aplicar las migraciones pendientes hasta la 005 y despues
 reaplicar los scripts de seguridad. No repetir migraciones anteriores ya
 aplicadas. El DDL actual ya incorpora los cambios para instalaciones nuevas.
 
+## Despliegue realizado
+
+El 27/10/2026 se instalo la base desde cero en el PostgreSQL de Railway con el
+orden publico de `INSTALL.md` y se publico la web en
+https://meditec-web-production.up.railway.app.
+
+Para subir solo la aplicacion desde la raiz del repositorio:
+
+```bash
+railway up ./web --path-as-root --service meditec-web
+```
+
+Sin `--path-as-root` Railway recibe el repositorio completo y no detecta la
+aplicacion Node.
+
 ## Validacion previa al tag
 
 - `/api/health` responde 200.

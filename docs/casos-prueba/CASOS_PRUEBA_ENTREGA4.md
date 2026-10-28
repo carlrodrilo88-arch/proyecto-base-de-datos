@@ -37,7 +37,8 @@ la revisión visual documentada.
 | CP-E4-DB04 | Consultar constancias activas | Ninguna computadora activa | 0 activas | Aprobado |
 | CP-E4-DB05 | Verificar funciones y vista | Código, publicación y vista existentes | Objetos encontrados | Aprobado |
 | CP-E4-DB06 | Revisar datos importados | Instituciones, servicios y equipos disponibles | 8, 99 y 286 registros | Aprobado |
-| CP-E4-DB07 | Instalación desde cero en PostgreSQL 15 | Orden completo sin errores | No ejecutada en base vacía final | Pendiente |
+| CP-E4-DB07 | Instalación desde cero | Orden completo sin errores | Ejecutada el 27/10/2026 en base vacía de Railway, PostgreSQL 18.6 | Aprobado |
+| CP-E4-DB08 | Despliegue público | `/api/health` 200 y login | https://meditec-web-production.up.railway.app responde 200; login de administrador aprobado | Aprobado |
 
 ## Pruebas funcionales
 
@@ -67,6 +68,7 @@ la revisión visual documentada.
 ## Resultado general
 
 Las pruebas automáticas, de base y visuales ejecutadas finalizaron correctamente.
-Quedan pendientes las pruebas que deben generar datos reales de demostración, la
-instalación limpia final, un usuario de consulta y el despliegue. Estos casos no
+La instalación limpia y el despliegue público se aprobaron en Railway. Quedan
+pendientes las pruebas que deben generar datos reales de demostración, la
+publicación de un PDF en el Bucket y un usuario de consulta. Estos casos no
 se marcan como aprobados hasta guardar su evidencia.
