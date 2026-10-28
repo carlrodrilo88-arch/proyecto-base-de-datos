@@ -1,4 +1,8 @@
--- Agrega proveedor de plantilla y datos tecnicos conservando reportes existentes.
+-- Archivo: sql/migrations/002_flujo_reportes_proveedor_pdf.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Agrega proveedor de plantilla y datos tecnicos conservando reportes existentes.
+-- Dependencias: sql/migrations/001_servicios_institucion_proveedor_identidad.sql
+
 BEGIN;
 
 ALTER TABLE reportes ADD COLUMN IF NOT EXISTS id_proveedor_plantilla BIGINT;

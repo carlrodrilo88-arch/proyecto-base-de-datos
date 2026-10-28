@@ -1,4 +1,8 @@
--- Automatizaciones y reglas de integridad de reportes y archivos PDF.
+-- Archivo: sql/triggers/001_reportes.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Automatizaciones y reglas de integridad de reportes y archivos PDF.
+-- Dependencias: sql/ddl/001_schema.sql y sql/procedures/001_reportes.sql (set_actualizado_en, registrar_evento_auditoria).
+
 
 CREATE OR REPLACE FUNCTION validar_publicacion_reporte()
 RETURNS TRIGGER AS $$
@@ -26,8 +30,9 @@ BEGIN
     PERFORM registrar_evento_auditoria(
         usuario_contexto, 'reportes', NEW.id_reporte,
         CASE WHEN TG_OP = 'INSERT' THEN 'CREAR' ELSE 'ACTUALIZAR' END,
-        CASE WHEN TG_OP = 'INSERT'
-            THEN 'Reporte creado con estado ' || NEW.estado
+        CASE
+            WHEN TG_OP = 'INSERT' THEN 'Reporte creado con estado ' || NEW.estado
+            WHEN OLD.estado = NEW.estado THEN 'Contenido corregido; estado ' || NEW.estado
             ELSE 'Estado anterior: ' || OLD.estado || '; estado nuevo: ' || NEW.estado
         END
     );

@@ -54,11 +54,12 @@
             <button class="nav-button" data-module="instituciones">Instituciones</button>
             <button class="nav-button" data-module="servicios">Servicios solicitantes</button>
             <button class="nav-button" data-module="equipos_medicos">Equipos medicos</button>
-            <button class="nav-button" data-module="tecnicos">Tecnicos</button>
-            <button class="nav-button" data-module="proveedores">Empresas y proveedores</button>
+            <button id="techniciansNav" class="nav-button hidden" data-module="tecnicos">Tecnicos</button>
+            <button id="companiesNav" class="nav-button hidden" data-module="proveedores">Empresas y proveedores</button>
             <p class="nav-group">Cuenta</p>
             <button id="devicesNav" class="nav-button hidden" data-module="equipos_autorizados">Constancia de computadoras</button>
             <button id="usersNav" class="nav-button hidden" data-module="usuarios">Usuarios y permisos</button>
+            <button id="auditNav" class="nav-button hidden" data-module="auditoria">Auditoría</button>
             <button class="nav-button" data-module="password">Cambiar mi contrasena</button>
           </nav>
           <button id="logoutButton" class="secondary logout">Cerrar sesion</button>
@@ -127,6 +128,10 @@
                 <label class="field" data-field="password_temporal">Contrasena temporal
                   <input name="password_temporal" type="password" autocomplete="new-password">
                 </label>
+                <fieldset class="field wide technician-field" data-field="id_proveedores">
+                  <legend id="companyLegend">Empresas</legend>
+                  <div id="companyOptions" class="technician-options"></div>
+                </fieldset>
               </div>
               <div class="form-actions">
                 <label id="activeCheck" class="check">
@@ -154,10 +159,22 @@
           <div id="reportsPanel">
             <form id="reportForm" class="report-form">
               <fieldset class="panel step">
-                <legend><span class="step-number">1</span> Institucion atendida</legend>
+                <legend><span class="step-number">1</span> Empresa que presta el servicio</legend>
+                <p class="hint">La empresa define la plantilla del PDF y las instituciones disponibles.</p>
+                <div id="templateOptions" class="template-options" role="radiogroup" aria-label="Empresa que presto el servicio"></div>
+                <details id="templatePreview" class="template-preview hidden">
+                  <summary>Ver muestra del formato <span id="templateName"></span></summary>
+                  <p class="hint">Este formato se usa en la vista previa y en el PDF final. Las firmas se completan en papel.
+                    <a id="templateLink" target="_blank" rel="noopener">Abrir formato PDF</a></p>
+                  <div id="templateSheet" class="template-sheet" aria-label="Muestra visual del formato seleccionado"></div>
+                </details>
+              </fieldset>
+
+              <fieldset class="panel step">
+                <legend><span class="step-number">2</span> Institucion atendida</legend>
                 <div class="form-grid">
                   <label class="field">Institucion
-                    <select name="id_institucion_reporte" required></select>
+                    <select name="id_institucion_reporte" required disabled></select>
                   </label>
                   <label class="field">Servicio solicitante
                     <select name="id_servicio_solicitante" required disabled></select>
@@ -169,7 +186,7 @@
               </fieldset>
 
               <fieldset class="panel step">
-                <legend><span class="step-number">2</span> Equipos atendidos</legend>
+                <legend><span class="step-number">3</span> Equipos atendidos</legend>
                 <p class="hint">Busque por numero de bien, serie, descripcion, marca o modelo. Se crea un reporte independiente por cada equipo.</p>
                 <div class="equipment-picker">
                   <input id="equipmentSearch" type="search" disabled
@@ -205,16 +222,6 @@
                 </div>
               </fieldset>
 
-              <fieldset class="panel step">
-                <legend><span class="step-number">3</span> Plantilla del reporte</legend>
-                <div id="templateOptions" class="template-options" role="radiogroup" aria-label="Empresa que presto el servicio"></div>
-                <details id="templatePreview" class="template-preview hidden">
-                  <summary>Ver muestra del formato <span id="templateName"></span></summary>
-                  <p class="hint">Este formato se usa en la vista previa y en el PDF final. Las firmas se completan en papel.
-                    <a id="templateLink" target="_blank" rel="noopener">Abrir formato PDF</a></p>
-                  <div id="templateSheet" class="template-sheet" aria-label="Muestra visual del formato seleccionado"></div>
-                </details>
-              </fieldset>
 
               <fieldset class="panel step">
                 <legend><span class="step-number">4</span> Detalle del servicio</legend>
@@ -241,6 +248,10 @@
                   <label class="field wide">Recomendaciones
                     <textarea name="recomendaciones" placeholder="Opcional" maxlength="6000" spellcheck="true"></textarea>
                   </label>
+                  <fieldset class="field wide technician-field">
+                    <legend>Técnicos que atendieron <span class="muted">(opcional)</span></legend>
+                    <div id="technicianOptions" class="technician-options"></div>
+                  </fieldset>
                 </div>
               </fieldset>
 
@@ -254,13 +265,22 @@
               <h3 class="panel-title">Reportes registrados</h3>
               <form id="reportFilterForm" class="filters">
                 <input name="codigo" type="search" placeholder="Buscar por codigo" aria-label="Buscar por codigo">
+                <select name="id_institucion" aria-label="Institucion"></select>
+                <select name="id_servicio_solicitante" aria-label="Servicio solicitante"></select>
+                <select name="id_tecnico" aria-label="Tecnico"></select>
+                <label class="filter-date">Desde
+                  <input name="fecha_desde" type="date" aria-label="Fecha inicial">
+                </label>
+                <label class="filter-date">Hasta
+                  <input name="fecha_hasta" type="date" aria-label="Fecha final">
+                </label>
                 <select name="estado" aria-label="Estado">
                   <option value="">Todos los estados</option>
-                  <option value="borrador">Borrador</option>
                   <option value="publicado">Publicado</option>
                   <option value="anulado">Anulado</option>
                 </select>
                 <button type="submit" class="secondary">Buscar</button>
+                <button type="reset" class="secondary">Limpiar</button>
               </form>
               <div class="table-wrap">
                 <table>
@@ -305,6 +325,56 @@
         <button type="button" id="reviewBack" class="secondary">Volver y corregir</button>
         <button type="button" id="reviewConfirm">Crear y publicar PDF</button>
       </div>
+    </dialog>
+    <dialog id="reportEditDialog" class="review-dialog" aria-labelledby="reportEditTitle">
+      <form id="reportEditForm">
+        <div class="review-header">
+          <div>
+            <p class="review-kicker">Corregir reporte</p>
+            <h2 id="reportEditTitle">Editar reporte</h2>
+            <p id="reportEditCode"></p>
+            <p class="hint">Si el reporte ya esta publicado se genera un PDF nuevo; el anterior queda guardado como reemplazado.</p>
+          </div>
+          <button type="button" id="reportEditClose" class="secondary review-close" aria-label="Cerrar edicion">×</button>
+        </div>
+        <div class="review-content">
+          <input type="hidden" name="id_reporte">
+          <div class="form-grid">
+            <label class="field">Tipo de servicio
+              <select name="tipo_servicio" required>
+                <option value="garantia">Garantia</option>
+                <option value="preventivo">Mantenimiento preventivo</option>
+                <option value="correctivo">Mantenimiento correctivo</option>
+                <option value="emergencia">Llamada de emergencia</option>
+                <option value="otros">Otros</option>
+              </select>
+            </label>
+            <label class="field">Fecha del reporte
+              <input name="fecha_reporte" type="date" required>
+            </label>
+            <label class="field">Asunto del reporte
+              <input name="titulo" maxlength="180" spellcheck="true" required>
+            </label>
+            <label class="field">Numero de pedido y NOG
+              <input name="numero_pedido_nog" placeholder="Opcional" maxlength="80">
+            </label>
+            <label class="field wide">Descripcion del servicio / especificaciones tecnicas
+              <textarea name="especificaciones_tecnicas" maxlength="6000" spellcheck="true" required></textarea>
+            </label>
+            <label class="field wide">Recomendaciones
+              <textarea name="recomendaciones" placeholder="Opcional" maxlength="6000" spellcheck="true"></textarea>
+            </label>
+            <fieldset class="field wide technician-field">
+              <legend>Técnicos que atendieron</legend>
+              <div id="editTechnicianOptions" class="technician-options"></div>
+            </fieldset>
+          </div>
+        </div>
+        <div class="review-actions">
+          <button type="button" id="reportEditCancel" class="secondary">Cancelar</button>
+          <button type="submit">Guardar cambios</button>
+        </div>
+      </form>
     </dialog>
     <script src="/app.js"></script>
   </body>

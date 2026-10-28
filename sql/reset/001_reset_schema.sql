@@ -1,4 +1,7 @@
 -- Archivo: sql/reset/001_reset_schema.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Reconstruye un ambiente de pruebas eliminando los objetos del proyecto.
+-- Dependencias: ninguna; se ejecuta antes de una reinstalacion desde sql/ddl/001_schema.sql.
 -- ADVERTENCIA: elimina permanentemente las tablas, datos y objetos dependientes
 -- del proyecto Meditec. Usar solo para reconstruir un ambiente de pruebas.
 
@@ -10,6 +13,8 @@ DROP TABLE IF EXISTS archivos_pdf CASCADE;
 DROP TABLE IF EXISTS reporte_proveedor CASCADE;
 DROP TABLE IF EXISTS reporte_tecnico CASCADE;
 DROP TABLE IF EXISTS reportes CASCADE;
+DROP TABLE IF EXISTS usuario_proveedor CASCADE;
+DROP TABLE IF EXISTS proveedor_institucion CASCADE;
 DROP TABLE IF EXISTS equipos_medicos CASCADE;
 DROP TABLE IF EXISTS equipos_autorizados CASCADE;
 DROP TABLE IF EXISTS usuarios CASCADE;

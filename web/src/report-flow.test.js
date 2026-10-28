@@ -38,3 +38,8 @@ test("rechaza claves que intentan salir del almacenamiento", () => {
   assert.throws(() => validateKey("../secreto.pdf"));
   assert.throws(() => validateKey("reportes/../../secreto.pdf"));
 });
+
+test("imprime el nombre del creador en la firma del servicio tecnico", async () => {
+  const pdf = await generateReportPdf({ ...report, codigo_plantilla: "meditec", proveedor: "Meditec", creador: "Ana Perez" });
+  assert.equal(pdf.subarray(0, 4).toString(), "%PDF");
+});

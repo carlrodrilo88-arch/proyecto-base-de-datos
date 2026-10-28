@@ -38,7 +38,7 @@ FROM (
         ('Centro Medico Sur', 'Villa Nueva, Guatemala', '2230-0003', 'contacto@centromedicosur.local')
 ) AS v(nombre, direccion, telefono, correo)
 WHERE NOT EXISTS (
-    SELECT 1 FROM instituciones i WHERE i.nombre = v.nombre
+    SELECT 1 FROM instituciones i WHERE LOWER(BTRIM(i.nombre)) = LOWER(BTRIM(v.nombre))
 );
 
 INSERT INTO servicios_solicitantes (id_institucion, nombre)

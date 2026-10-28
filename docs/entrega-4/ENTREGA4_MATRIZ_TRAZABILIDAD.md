@@ -10,13 +10,14 @@
 | RF-04 Registrar instituciones | `instituciones` | CRUD `/api/instituciones` | Catálogo e importación depurada | Cumple |
 | RF-05 Registrar usuarios | `usuarios` con hash bcrypt | Administración `/api/usuarios` | Login y cambio obligatorio | Cumple |
 | RF-06 Asignar roles y permisos | `roles` y roles PostgreSQL | Selector de rol y middleware | Pruebas de privilegios | Cumple |
-| RF-07 Registrar equipos autorizados | `equipos_autorizados` | Constancias inactivas de solo registro | Migración 006 | Cumple con alcance revisado |
-| RF-08 Crear reportes relacionados | `reportes`, servicio, institución inferida y equipo | Formulario por pasos y lote por equipo | Revisión previa y API | Parcial: asignación de técnicos no expuesta |
+| RF-07 Registrar equipos autorizados | `equipos_autorizados` | CRUD `/api/equipos-autorizados` de constancias inactivas (crear, consultar, editar, eliminar) | Migración 006, CP-E4-DB11 y CP-E4-F13 | Cumple con alcance revisado |
+| RF-08 Crear reportes relacionados | `reportes`, servicio, institución inferida y equipo | Formulario por pasos, lote por equipo y técnicos asignados (`reporte_tecnico`) | Revisión previa, API, CP-E4-A08, F15 y F16 | Cumple |
+| RF-08b Corregir y anular reportes | `reportes.estado` (`borrador`, `publicado`, `anulado`) y `trg_reportes_auditoria` | `PUT /api/reportes/:id` en borrador; `DELETE /api/reportes/:id` anula (administrador) | CP-E4-DB10, CP-E4-F10 a F12 | Cumple |
 | RF-09 Código único | Secuencia y `generar_codigo_reporte()` | Código devuelto al crear | Pruebas de secuencia | Cumple |
 | RF-10 Asociar PDF | `archivos_pdf` e historial activo | Generación y publicación automática | Pruebas PDF y almacenamiento | Cumple |
 | RF-11 Consultar por ID | Código único y vista resumen | Búsqueda por código y apertura del PDF | Tabla de reportes | Cumple |
-| RF-12 Filtros | Consultas por institución, servicio, técnico, fecha y estado | Código y estado en interfaz | Consultas Q01-Q16 | Parcial |
-| RF-13 Auditoría | `auditoria_eventos` y triggers | Generación automática desde operaciones | Pruebas SQL | Cumple en backend |
+| RF-12 Filtros | Consultas por institución, servicio, técnico, fecha y estado | Código, estado, institución, servicio, técnico y rango de fechas en interfaz | Consultas Q01-Q16 y CP-E4-F17 | Cumple |
+| RF-13 Auditoría | `auditoria_eventos` y triggers | Generación automática y módulo web de consulta para el administrador | Pruebas SQL y CP-E4-F18 | Cumple |
 | RF-14 Restringir generación | Roles, procedimientos y permisos mínimos | `requireAuth` y `requireRole` | Pruebas de autorización | Parcial frente al requisito original de dispositivo; el alcance final usa constancia inactiva |
 
 ## Requerimientos no funcionales

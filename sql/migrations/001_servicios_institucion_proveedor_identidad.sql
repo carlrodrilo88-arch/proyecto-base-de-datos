@@ -1,4 +1,7 @@
--- Migra una base existente sin eliminar reportes ni catalogos.
+-- Archivo: sql/migrations/001_servicios_institucion_proveedor_identidad.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Migra una base existente sin eliminar reportes ni catalogos.
+-- Dependencias: Base creada con una version anterior de sql/ddl/001_schema.sql.
 -- Ejecutar una sola vez antes de iniciar la version web actualizada.
 
 BEGIN;

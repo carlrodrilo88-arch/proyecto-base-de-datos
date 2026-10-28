@@ -87,6 +87,41 @@ La migración 006 convierte `equipos_autorizados` en constancias inactivas. El
 script de procedimientos crea de forma segura la secuencia de códigos si una
 base antigua no la contiene y la avanza según los reportes existentes.
 
+Si la base ya estaba instalada antes del 27/10/2026, vuelva a ejecutar
+`sql/security/001_roles_permisos.sql` y `sql/security/002_usuario_web.sql` con
+la cuenta propietaria **antes** de desplegar el código nuevo. Agregan a
+`meditec_web`: `UPDATE` y `DELETE` sobre `equipos_autorizados`, `SELECT`,
+`INSERT` y `DELETE` sobre `reporte_tecnico`, y `SELECT` sobre
+`auditoria_eventos`. Sin ellos la consulta de reportes responde 503 con el
+mensaje de permisos. `npm run test:db` lista los permisos faltantes.
+
+## Operaciones CRUD por tabla principal
+
+| Tabla | Crear | Consultar | Actualizar | Eliminar |
+| --- | --- | --- | --- | --- |
+| instituciones, servicios_solicitantes, equipos_medicos, tecnicos, proveedores | `POST` | `GET` | `PUT /:id` | `DELETE /:id`: desactivación lógica (`activo=FALSE`) |
+| usuarios | `POST` | `GET` | `PUT /:id` y restablecer contraseña | `DELETE /:id`: desactivación lógica |
+| reportes | `POST` (uno o lote) | `GET` y `GET /:id` | `PUT /:id` solo en `borrador`; publicar | `DELETE /:id`: anulación (`estado='anulado'`), solo administrador |
+| archivos_pdf | Al publicar (`reemplazar_pdf_reporte`) | `GET /api/reportes/:id/archivo` | El procedimiento marca la versión anterior como `reemplazado` | No se borra: es evidencia del reporte |
+| equipos_autorizados | `POST` | `GET` | `PUT /:id` (sigue inactivo) | `DELETE /:id`: eliminación física |
+| roles | Script SQL | `GET /api/roles` | Catálogo fijo | Catálogo fijo |
+| reporte_tecnico (N:M) | Al crear el reporte | Columna Técnicos de la vista y `GET /:id` | Se reemplaza al editar un borrador | Se reemplaza al editar un borrador |
+| auditoria_eventos | Triggers | `GET /api/auditoria` (administrador, últimos 500) | No aplica | No aplica |
+
+Los catálogos y los reportes no se borran físicamente para conservar la
+integridad referencial y la trazabilidad (las FK usan `ON DELETE RESTRICT`).
+La edición y la anulación de reportes se ejecutan en una transacción que fija
+`meditec.id_usuario`, de modo que el trigger `trg_reportes_auditoria` registra
+qué usuario hizo el cambio. Un reporte publicado no se edita porque su PDF
+definitivo ya está almacenado; se anula y se crea uno nuevo.
+
+## Consulta de reportes
+
+`GET /api/reportes` acepta filtros opcionales y combinables: `codigo`, `estado`,
+`id_institucion`, `id_servicio_solicitante`, `id_tecnico`, `fecha_desde` y
+`fecha_hasta` (AAAA-MM-DD). Todos se envían como parámetros de la consulta
+SQL; un valor vacío desactiva su filtro.
+
 ## Seguridad
 
 - Contraseñas de usuarios almacenadas con bcrypt.

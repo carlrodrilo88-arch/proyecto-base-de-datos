@@ -1,4 +1,5 @@
 -- Archivo: sql/queries/001_consultas_entrega3.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
 -- Descripcion: Consultas principales para demostrar los requisitos de Entrega 3.
 -- Dependencias: esquema, seed y vista de resumen.
 

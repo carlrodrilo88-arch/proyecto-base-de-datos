@@ -1,4 +1,8 @@
--- Funciones y procedimientos de negocio para reportes y archivos PDF.
+-- Archivo: sql/procedures/001_reportes.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Funciones y procedimientos de negocio para reportes y archivos PDF.
+-- Dependencias: sql/ddl/001_schema.sql
+
 
 -- Las bases creadas con el esquema inicial pueden no tener la secuencia. Si ya
 -- existen reportes, se avanza hasta el mayor sufijo numerico para evitar codigos

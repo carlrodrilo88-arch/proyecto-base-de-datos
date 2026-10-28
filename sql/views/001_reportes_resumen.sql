@@ -1,3 +1,8 @@
+-- Archivo: sql/views/001_reportes_resumen.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Vista de consulta de reportes con institucion, plantilla, tecnicos, proveedores y PDF activo; evita duplicar datos calculables (S7).
+-- Dependencias: sql/ddl/001_schema.sql
+
 CREATE OR REPLACE VIEW vw_reportes_resumen AS
 SELECT
     r.id_reporte,

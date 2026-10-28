@@ -95,6 +95,7 @@ psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/004_administr
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/005_plantillas_observaciones.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/006_constancia_equipos_autorizados.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/007_usuario_acceso.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/008_empresas_usuario_institucion.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/dml/004_usuario_administrador.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/001_roles_permisos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/002_usuario_web.sql
@@ -122,6 +123,14 @@ para aplicar estos cambios.
 La sexta migracion convierte `equipos_autorizados` en un registro de constancia:
 las computadoras se conservan inactivas y no intervienen en la publicacion. La
 autorizacion efectiva depende del usuario autenticado y de su rol en la web.
+
+La octava migracion crea `usuario_proveedor` (empresas de cada usuario) y
+`proveedor_institucion` (hospitales que atiende cada empresa), enlaza las
+instituciones con la empresa de sus reportes existentes y crea un indice unico
+sobre el nombre normalizado de la institucion. Si encuentra nombres repetidos se
+detiene y los lista para unificarlos antes. Despues de aplicarla, el
+administrador debe asignar empresas a los usuarios que no son administradores e
+instituciones a cada empresa; sin eso no ven datos.
 
 La septima migracion agrega `usuarios.usuario` para iniciar sesion con nombre de
 usuario o correo, y vuelve opcional el correo. Los usuarios existentes reciben

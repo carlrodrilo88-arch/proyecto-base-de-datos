@@ -112,6 +112,33 @@ CREATE TABLE proveedores (
     CONSTRAINT uq_proveedores_codigo_plantilla UNIQUE (codigo_plantilla)
 );
 
+-- Empresas a las que pertenece cada usuario; filtra lo que ve y puede usar en la web.
+CREATE TABLE usuario_proveedor (
+    id_usuario BIGINT NOT NULL,
+    id_proveedor BIGINT NOT NULL,
+    PRIMARY KEY (id_usuario, id_proveedor),
+    CONSTRAINT fk_usuario_proveedor_usuarios
+        FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_usuario_proveedor_proveedores
+        FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- Hospitales que atiende cada empresa; un hospital puede ser cliente de varias.
+CREATE TABLE proveedor_institucion (
+    id_proveedor BIGINT NOT NULL,
+    id_institucion BIGINT NOT NULL,
+    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_proveedor, id_institucion),
+    CONSTRAINT fk_proveedor_institucion_proveedores
+        FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_proveedor_institucion_instituciones
+        FOREIGN KEY (id_institucion) REFERENCES instituciones(id_institucion)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
 CREATE TABLE reportes (
     id_reporte BIGSERIAL PRIMARY KEY,
     codigo_reporte VARCHAR(40) NOT NULL UNIQUE,
@@ -242,6 +269,9 @@ CREATE INDEX idx_reportes_estado ON reportes(estado);
 CREATE UNIQUE INDEX uq_archivo_pdf_activo_por_reporte
     ON archivos_pdf(id_reporte)
     WHERE estado = 'activo';
+CREATE INDEX idx_proveedor_institucion_institucion ON proveedor_institucion(id_institucion);
+-- Una institucion se registra una sola vez aunque cambien mayusculas o espacios.
+CREATE UNIQUE INDEX uq_instituciones_nombre_normalizado ON instituciones (LOWER(BTRIM(nombre)));
 CREATE INDEX idx_auditoria_entidad ON auditoria_eventos(entidad, entidad_id);
 CREATE INDEX idx_auditoria_fecha ON auditoria_eventos(fecha_evento);
 

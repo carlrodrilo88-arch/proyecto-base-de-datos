@@ -9,6 +9,8 @@ async function main() {
     SELECT
       to_regclass('public.equipos_medicos') IS NOT NULL AS equipos_medicos,
       to_regclass('public.vw_reportes_resumen') IS NOT NULL AS vista,
+      to_regclass('public.usuario_proveedor') IS NOT NULL AS empresas_usuario,
+      to_regclass('public.proveedor_institucion') IS NOT NULL AS empresas_institucion,
       EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema='public' AND table_name='reportes'
@@ -50,7 +52,15 @@ async function main() {
       has_table_privilege(current_user, 'equipos_medicos', 'INSERT') AS crear_equipos,
       has_table_privilege(current_user, 'vw_reportes_resumen', 'SELECT') AS leer_vista,
       has_table_privilege(current_user, 'usuarios', 'INSERT') AS crear_usuarios,
-      has_table_privilege(current_user, 'usuarios', 'UPDATE') AS editar_usuarios
+      has_table_privilege(current_user, 'usuarios', 'UPDATE') AS editar_usuarios,
+      has_table_privilege(current_user, 'reportes', 'UPDATE') AS editar_reportes,
+      has_table_privilege(current_user, 'equipos_autorizados', 'UPDATE') AS editar_computadoras,
+      has_table_privilege(current_user, 'equipos_autorizados', 'DELETE') AS eliminar_computadoras,
+      has_table_privilege(current_user, 'reporte_tecnico', 'INSERT') AS asignar_tecnicos,
+      has_table_privilege(current_user, 'reporte_tecnico', 'DELETE') AS reasignar_tecnicos,
+      has_table_privilege(current_user, 'auditoria_eventos', 'SELECT') AS leer_auditoria,
+      has_table_privilege(current_user, 'usuario_proveedor', 'DELETE') AS asignar_empresas_usuario,
+      has_table_privilege(current_user, 'proveedor_institucion', 'INSERT') AS enlazar_instituciones
   `);
   const denied = Object.entries(access.rows[0]).filter(([, value]) => !value).map(([key]) => key);
   if (denied.length) throw new Error(`Permisos incompletos: ${denied.join(', ')}`);

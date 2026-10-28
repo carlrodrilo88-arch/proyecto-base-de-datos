@@ -1,4 +1,8 @@
--- Se ejecuta despues de las migraciones 001 y 002.
+-- Archivo: sql/migrations/003_catalogo_equipos_medicos.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Crea el catalogo de equipos medicos por institucion y lo enlaza a reportes.
+-- Dependencias: sql/migrations/001 y sql/migrations/002 (se ejecuta despues de ambas).
+
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS equipos_medicos (

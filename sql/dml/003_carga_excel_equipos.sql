@@ -24,7 +24,7 @@ FROM (
         ('Ortoimplantes')
 ) AS v(nombre)
 WHERE NOT EXISTS (
-    SELECT 1 FROM instituciones i WHERE i.nombre = v.nombre
+    SELECT 1 FROM instituciones i WHERE LOWER(BTRIM(i.nombre)) = LOWER(BTRIM(v.nombre))
 );
 
 INSERT INTO servicios_solicitantes (id_institucion, nombre)
@@ -128,7 +128,7 @@ FROM (
         ('IGSS, Hospital General de Quetzaltenango', 'traumotoligia y cirugia'),
         ('IGSS, Hospital General de Quetzaltenango', 'Área de Emergencia de Ginecología')
 ) AS v(institucion, servicio)
-JOIN instituciones i ON i.nombre = v.institucion
+JOIN instituciones i ON LOWER(BTRIM(i.nombre)) = LOWER(BTRIM(v.institucion))
 ON CONFLICT (id_institucion, nombre) DO NOTHING;
 
 INSERT INTO equipos_medicos (
@@ -423,7 +423,7 @@ FROM (
         ('Ortoimplantes', 'Autoclave de vapor', NULL, NULL, 'TC-459', NULL),
         ('Ortoimplantes', 'Autoclave de vapor', NULL, 'Ta CHANG', 'tc 459', '1908317')
 ) AS v(institucion, nombre, numero_bien, marca, modelo, numero_serie)
-JOIN instituciones i ON i.nombre = v.institucion
+JOIN instituciones i ON LOWER(BTRIM(i.nombre)) = LOWER(BTRIM(v.institucion))
 -- Los equipos sin numero de bien se comparan por nombre, marca, modelo y serie.
 WHERE NOT EXISTS (
     SELECT 1 FROM equipos_medicos em

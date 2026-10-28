@@ -68,9 +68,12 @@ Pulse **Cerrar sesión** al terminar, sobre todo en computadoras compartidas.
 | Consultar catálogos | Sí | Sí | Sí |
 | Crear y editar instituciones, servicios, equipos, técnicos y empresas | Sí | Sí | No |
 | Crear y publicar reportes | Sí | Sí | No |
+| Editar reportes en borrador | Sí | Sí | No |
+| Anular reportes | Sí | No | No |
 | Desactivar registros de catálogos | Sí | No | No |
 | Administrar usuarios y contraseñas temporales | Sí | No | No |
-| Registrar constancias de computadoras | Sí | No | No |
+| Registrar, editar y eliminar constancias de computadoras | Sí | No | No |
+| Consultar la auditoría | Sí | No | No |
 | Cambiar su propia contraseña | Sí | Sí | Sí |
 
 Si un usuario intenta una acción que su rol no permite, el sistema la rechaza y
@@ -161,8 +164,15 @@ ingreso. Para su propia cuenta, use **Cambiar mi contraseña**.
 
 Este módulo registra las computadoras usadas durante el proyecto, como
 constancia del requisito de que solo dos equipos generan reportes. Los registros
-se guardan **inactivos**, no conceden permisos y no se editan desde la interfaz.
-El permiso real para crear documentos depende del usuario y su rol.
+se guardan **inactivos** y no conceden permisos. El permiso real para crear
+documentos depende del usuario y su rol.
+
+- **Registrar:** complete nombre e identificador y pulse **Guardar**.
+- **Editar:** pulse **Editar** en la fila, corrija los datos y guarde. El
+  registro sigue inactivo.
+- **Eliminar:** pulse **Eliminar** y confirme. A diferencia de los catálogos,
+  la constancia se borra definitivamente porque no tiene historial propio; si
+  un reporte la citaba, el reporte se conserva sin esa referencia.
 
 ## 8. Creación y publicación de reportes
 
@@ -200,14 +210,16 @@ El permiso real para crear documentos depende del usuario y su rol.
 10. Si la empresa es Meditec o GT Medical, complete **Número de pedido y NOG**.
 11. Escriba la **descripción del servicio / especificaciones técnicas** y las
     **recomendaciones**.
+12. Marque los **técnicos que atendieron** (opcional). Quedan asociados a
+    todos los reportes del lote y aparecen en la columna Técnicos.
 
 ### 8.5 Revisión y publicación
 
-12. Pulse **Revisar reporte**. Hasta este punto **no se guarda nada**.
-13. Compruebe institución, servicio, equipos, plantilla y redacción. La revisión
+13. Pulse **Revisar reporte**. Hasta este punto **no se guarda nada**.
+14. Compruebe institución, técnicos, servicio, equipos, plantilla y redacción. La revisión
     advierte espacios o palabras repetidas, exceso de mayúsculas, falta de
     puntuación y descripciones demasiado cortas.
-14. Pulse **Volver y corregir** para editar, o **Crear y publicar PDF** para
+15. Pulse **Volver y corregir** para editar, o **Crear y publicar PDF** para
     confirmar.
 
 Al confirmar, el sistema crea un código único por reporte (por ejemplo,
@@ -224,16 +236,33 @@ recorta el texto sin avisar.
 La tabla **Reportes registrados** muestra el código, la fecha, la institución,
 el servicio, la empresa de la plantilla, el asunto y el estado de cada reporte.
 
-1. Escriba un código o elija un estado y pulse **Buscar**.
+1. Combine los filtros que necesite: código, estado, institución, servicio,
+   técnico y rango de fechas (**Desde** / **Hasta**). Pulse **Buscar**;
+   **Limpiar** quita todos los filtros.
 2. Use la acción disponible según el estado:
    - **Ver PDF:** abre el documento definitivo de un reporte publicado.
    - **Vista previa:** disponible para borradores recuperables.
+   - **Editar:** corrige el tipo de servicio, la fecha, el asunto, el número
+     de pedido, las especificaciones, las recomendaciones o los técnicos de
+     un borrador.
    - **Publicar:** completa un borrador que quedó pendiente.
+   - **Anular** (solo administrador): marca el reporte como `anulado`.
 
 Un reporte publicado conserva su código, los datos históricos del equipo y la
-versión activa de su PDF. No se edita como un borrador.
+versión activa de su PDF, por eso no se edita. Si contiene un error, el
+administrador lo **anula** y se crea un reporte nuevo con los datos correctos.
+La anulación no borra el reporte ni su PDF: ambos se conservan para la
+auditoría, y se pueden consultar con el filtro de estado **Anulado**.
 
-## 10. Buenas prácticas de seguridad
+## 10. Auditoría (administrador)
+
+El módulo **Auditoría** muestra los últimos 500 eventos que la base registra
+automáticamente: creación, cambios de estado (publicación y anulación) y
+versiones de PDF. Cada fila indica fecha y hora, usuario, entidad, acción y
+detalle. Es de solo lectura; use **Filtrar registros** para buscar, por
+ejemplo, el código interno de un reporte o la palabra `anulado`.
+
+## 11. Buenas prácticas de seguridad
 
 - No comparta su contraseña; cada persona debe tener su propia cuenta.
 - Cierre sesión en computadoras compartidas.
@@ -241,7 +270,7 @@ versión activa de su PDF. No se edita como un borrador.
 - Si sospecha que su contraseña fue vista por otra persona, cámbiela de
   inmediato o pida al administrador que la restablezca.
 
-## 11. Mensajes frecuentes
+## 12. Mensajes frecuentes
 
 | Mensaje o situación | Causa probable | Acción recomendada |
 | --- | --- | --- |
@@ -254,4 +283,6 @@ versión activa de su PDF. No se edita como un borrador.
 | Contenido demasiado extenso | El texto no cabe en una hoja | Resuma las especificaciones o las recomendaciones. |
 | No se pudo publicar | Falla de conexión o de almacenamiento | Intente de nuevo; el reporte no se marca como publicado sin PDF. Si persiste, avise al administrador. |
 | No se abre el PDF | El navegador bloqueó la ventana emergente | Permita ventanas emergentes para el sitio o use **Ver PDF** en la tabla. |
+| La cuenta de la base no tiene los permisos actuales | La base no tiene los permisos de la versión actual | Avise al administrador para ejecutar `sql/security/002_usuario_web.sql`. |
+| Solo se editan reportes en borrador | El reporte ya fue publicado o anulado | Anule el reporte y cree uno nuevo con los datos correctos. |
 | La base requiere actualización | Faltan migraciones en una instalación local | Aplique las migraciones de `INSTALL.md` con la cuenta propietaria de la base. |

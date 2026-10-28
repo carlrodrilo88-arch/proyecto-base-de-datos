@@ -1,4 +1,7 @@
--- Validacion reproducible de los componentes SQL de Entrega 3.
+-- Archivo: sql/tests/001_validacion_entrega3.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Validacion reproducible de los componentes SQL de Entrega 3.
+-- Dependencias: Instalacion completa (DDL, procedimientos, triggers, vista y datos). Los cambios se revierten.
 -- Ejecutar despues de la instalacion completa. Los cambios de datos se revierten.
 
 BEGIN;

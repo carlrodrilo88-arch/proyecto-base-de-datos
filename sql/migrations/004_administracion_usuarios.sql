@@ -1,9 +1,7 @@
-
-
-
-
-
--- Habilita la administracion segura de usuarios desde la aplicacion web.
+-- Archivo: sql/migrations/004_administracion_usuarios.sql
+-- Autor: Carlos Geovanni Lopez Rodriguez
+-- Descripcion: Habilita la administracion segura de usuarios desde la aplicacion web.
+-- Dependencias: sql/migrations/003_catalogo_equipos_medicos.sql
 -- Los usuarios existentes deben cambiar su contrasena conocida al iniciar sesion.
 
 BEGIN;

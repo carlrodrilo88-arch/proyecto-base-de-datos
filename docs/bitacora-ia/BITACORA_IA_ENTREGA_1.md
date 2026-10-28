@@ -1,5 +1,31 @@
 # Bitacora consolidada de Agentes IA
 
+## Registro 24
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 27/10/2026 |
+| Herramienta | Claude Code / Claude Opus 5.5 |
+| Objetivo | Cerrar las brechas declaradas en el informe final: asignación de técnicos a reportes, filtros incompletos, auditoría sin consulta web y falta del diagrama relacional en PNG. |
+| Prompt utilizado | Se solicitó trabajar en las brechas pendientes de la Entrega 4 y explicar cómo ejecutar `sql/security/002_usuario_web.sql`. |
+| Resultado obtenido | Selección opcional de técnicos al crear y editar reportes (`reporte_tecnico`, validada con `validateTechnicianIds`); filtros por institución, servicio, técnico y rango de fechas en la API y la interfaz; módulo de solo lectura **Auditoría** (`GET /api/auditoria`, administrador); permisos nuevos para `meditec_web` y `meditec_generador`; mensaje 503 comprensible cuando faltan permisos (código 42501); diagrama relacional actualizado en Mermaid y exportado a PNG con Chrome sin conexión a servicios externos de renderizado. |
+| Validacion del grupo | Proyecto individual validado por Carlos. `npm test`: 31 aprobadas, 0 fallidas, incluidas dos pruebas nuevas del validador de técnicos. El diagrama se revisó visualmente contra `sql/ddl/001_schema.sql` (13 tablas, 2 N:M). Los flujos en la interfaz quedan pendientes (CP-E4-F15 a F18) hasta aplicar los scripts de seguridad. Se descartó crear un trigger nuevo: la auditoría existente ya cubre los cambios de estado. |
+| Estandares aplicados | S2, S3, S6, S7, A1, A2, A3, A4, A5, A6, D1, D3 y D4. |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
+## Registro 23
+
+| Campo | Detalle |
+| ----- | ------- |
+| Fecha | 27/10/2026 |
+| Herramienta | Claude Code / Claude Opus 5.5 |
+| Objetivo | Revisar el cumplimiento de la Entrega 4 contra la rúbrica y corregir las brechas encontradas: CRUD incompleto en tablas principales y encabezados SQL sin el formato S3. |
+| Prompt utilizado | Se solicitó verificar si el proyecto cumple los requisitos de la Entrega 4 (excepto los 50 registros por tabla) y después trabajar en las brechas para pulir la entrega. |
+| Resultado obtenido | Se agregaron `GET`, `PUT` y `DELETE /api/reportes/:id` (edición solo de borradores y anulación lógica por el administrador, con el usuario registrado en la auditoría) y `PUT` y `DELETE /api/equipos-autorizados/:id`, con sus botones en la interfaz y un diálogo para editar borradores. Se extrajo la validación de campos del reporte a una función compartida por crear y editar. Se otorgó `UPDATE` y `DELETE` sobre `equipos_autorizados` a `meditec_web`, `npm run test:db` verifica ese permiso, y se completaron los encabezados Archivo/Autor/Descripción/Dependencias de 12 scripts SQL. |
+| Validacion del grupo | Proyecto individual validado por Carlos. `npm test`: 29 aprobadas, 0 fallidas. Las sentencias nuevas se probaron como `meditec_web` en una transacción revertida: la edición y la anulación funcionan, y un reporte anulado no se edita. Las rutas nuevas responden 401 sin sesión. La edición y eliminación de constancias devolvió 42501 hasta reaplicar `002_usuario_web.sql`, por lo que CP-E4-DB11 queda pendiente. Se decidió anular reportes en lugar de borrarlos para conservar el PDF y la trazabilidad. |
+| Estandares aplicados | S2, S3, S4, S6, S8, A1, A2, A3, A4, A5, A6, D1 y D4. |
+| Responsable | Carlos Geovanni Lopez Rodriguez / 2690-23-2511 |
+
 ## Registro 22
 
 | Campo | Detalle |

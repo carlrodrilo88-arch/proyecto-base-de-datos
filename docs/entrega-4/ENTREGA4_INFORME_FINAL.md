@@ -29,13 +29,20 @@ La solución incluye:
 - Roles de administrador, generador de reportes y consulta.
 - CRUD de instituciones, servicios, equipos médicos, técnicos, proveedores y
   usuarios según permisos.
-- Registro inactivo de computadoras como constancia académica.
+- CRUD de reportes: creación individual o por lote, consulta, edición de
+  borradores y anulación lógica por el administrador.
+- Registro inactivo de computadoras como constancia académica, con edición y
+  eliminación.
 - Búsqueda de equipos por descripción, marca, modelo, bien o serie.
 - Creación por lote de un reporte independiente por equipo.
 - Revisión previa de datos y redacción sin persistencia.
 - Generación, almacenamiento, publicación y consulta de PDF.
 - Plantillas fijas para Teknor, Meditec y GT Medical.
-- Auditoría, historial de archivos, procedimientos, triggers y vistas.
+- Asignación de técnicos a cada reporte (relación N:M `reporte_tecnico`).
+- Filtros de reportes por código, estado, institución, servicio, técnico y
+  rango de fechas.
+- Auditoría con módulo de consulta para el administrador, historial de
+  archivos, procedimientos, triggers y vistas.
 - Carga depurada de instituciones, servicios y equipos desde información
   histórica de Excel, sin importar los reportes antiguos como documentos.
 
@@ -95,12 +102,6 @@ fuera de Git.
   https://meditec-web-production.up.railway.app. El 27/10/2026 se verificó
   `/api/health`, el acceso de administrador y la publicación de un PDF en el
   Bucket de Railway.
-- La interfaz de reportes filtra actualmente por código y estado; los filtros
-  por fecha, institución, servicio y técnico existen en SQL, pero no todos están
-  expuestos en la pantalla.
-- La asignación de técnicos a un reporte está modelada en la base, pero no forma
-  parte del formulario final.
-- La auditoría se genera en la base, pero no tiene un módulo web de consulta.
 - La validación local fue sobre una base existente migrada a PostgreSQL 15.2.
   La instalación desde cero se ejecutó en Railway sobre PostgreSQL 18.6.
 - El requisito general de 50 registros por cada tabla principal no se cumple en

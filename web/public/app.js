@@ -21,6 +21,10 @@ const passwordForm = document.querySelector("#passwordForm");
 const passwordNotice = document.querySelector("#passwordNotice");
 const usersNav = document.querySelector("#usersNav");
 const devicesNav = document.querySelector("#devicesNav");
+const auditNav = document.querySelector("#auditNav");
+const techniciansNav = document.querySelector("#techniciansNav");
+const companiesNav = document.querySelector("#companiesNav");
+const companyOptions = document.querySelector("#companyOptions");
 const reportForm = document.querySelector("#reportForm");
 const reportFilterForm = document.querySelector("#reportFilterForm");
 const reportTableHead = document.querySelector("#reportTableHead");
@@ -71,9 +75,10 @@ const modules = {
     endpoint: "/api/instituciones",
     id: "id_institucion",
     nameLabel: "Nombre de la institucion",
-    fields: ["nombre", "telefono", "correo", "direccion"],
+    fields: ["nombre", "telefono", "correo", "direccion", "id_proveedores"],
     required: ["nombre"],
-    columns: ["id_institucion", "nombre", "telefono", "correo", "direccion", "activo"],
+    columns: ["id_institucion", "nombre", "empresas", "telefono", "correo", "direccion", "activo"],
+    companyLegend: "Empresas que atienden la institucion",
   },
   proveedores: {
     title: "Empresas y proveedores",
@@ -104,9 +109,10 @@ const modules = {
     endpoint: "/api/usuarios",
     id: "id_usuario",
     nameLabel: "Nombre completo",
-    fields: ["nombre", "usuario", "correo", "id_rol", "password_temporal"],
+    fields: ["nombre", "usuario", "correo", "id_rol", "password_temporal", "id_proveedores"],
     required: ["nombre", "usuario", "id_rol", "password_temporal"],
-    columns: ["id_usuario", "nombre", "usuario", "correo", "rol", "debe_cambiar_password", "activo"],
+    columns: ["id_usuario", "nombre", "usuario", "correo", "rol", "empresas", "debe_cambiar_password", "activo"],
+    companyLegend: "Empresas del usuario (el administrador ve todas)",
   },
   equipos_autorizados: {
     title: "Constancia de computadoras",
@@ -118,8 +124,21 @@ const modules = {
     fields: ["nombre", "identificador_equipo", "descripcion"],
     required: ["nombre", "identificador_equipo"],
     columns: ["id_equipo_autorizado", "nombre", "identificador_equipo", "descripcion", "activo"],
-    createOnly: true,
+    // Siempre inactivas; al no tener historial propio se eliminan en lugar de desactivarse.
+    fixedActive: true,
+    hardDelete: true,
     activeValue: false,
+  },
+  // Eventos registrados por los triggers; el modulo es de solo lectura.
+  auditoria: {
+    title: "Auditoría",
+    subtitle: "Últimos 500 cambios registrados automáticamente por la base de datos",
+    endpoint: "/api/auditoria",
+    id: "id_evento",
+    fields: [],
+    required: [],
+    columns: ["fecha_evento", "usuario", "entidad", "entidad_id", "accion", "detalle"],
+    readOnly: true,
   },
 };
 
@@ -130,8 +149,19 @@ const headers = {
   marca: "Marca", modelo: "Modelo", rol: "Rol", usuario: "Usuario", debe_cambiar_password: "Contrasena",
   codigo_reporte: "Codigo", fecha_reporte: "Fecha", servicio_solicitante: "Servicio",
   proveedor_plantilla: "Plantilla", titulo: "Asunto", estado: "Estado",
-  identificador_equipo: "Identificador", descripcion: "Descripción",
+  identificador_equipo: "Identificador", descripcion: "Descripción", tecnicos: "Técnicos",
+  fecha_evento: "Fecha y hora", entidad: "Entidad", entidad_id: "ID", accion: "Acción", detalle: "Detalle",
+  empresas: "Empresas", creador: "Creado por",
 };
+
+// El generador solo registra instituciones, servicios y equipos; editar catalogos es del administrador.
+const generatorCreates = ["instituciones", "servicios", "equipos_medicos"];
+
+function canCreateRecords(config) {
+  if (config.readOnly) return false;
+  if (currentUser?.rol === "administrador") return true;
+  return currentUser?.rol === "generador_reportes" && generatorCreates.includes(activeModule);
+}
 
 const serviceTypeLabels = {
   garantia: "Garantia", preventivo: "Mantenimiento preventivo",
@@ -183,6 +213,7 @@ function renderCell(column, value) {
   }
   if (column === "estado") return `<span class="badge ${escapeHtml(value)}">${escapeHtml(value)}</span>`;
   if (column === "fecha_reporte") return `<span class="code">${formatDate(value)}</span>`;
+  if (column === "fecha_evento") return `<span class="code">${escapeHtml(new Date(value).toLocaleString("es-GT"))}</span>`;
   if (column === "codigo_reporte") return `<span class="code">${escapeHtml(value)}</span>`;
   return value === null || value === undefined || value === "" ? '<span class="muted">—</span>' : escapeHtml(value);
 }
@@ -226,6 +257,9 @@ function showApp(usuario) {
   userLabel.textContent = `${usuario.nombre} · ${usuario.rol.replace("_", " ")}`;
   usersNav.classList.toggle("hidden", usuario.rol !== "administrador");
   devicesNav.classList.toggle("hidden", usuario.rol !== "administrador");
+  auditNav.classList.toggle("hidden", usuario.rol !== "administrador");
+  techniciansNav.classList.toggle("hidden", usuario.rol !== "administrador");
+  companiesNav.classList.toggle("hidden", usuario.rol !== "administrador");
   passwordNotice.textContent = usuario.debe_cambiar_password
     ? "Debe cambiar la contrasena temporal antes de continuar."
     : "Actualice su contrasena personal.";
@@ -268,7 +302,7 @@ function configureModule() {
     const canEdit = currentUser?.rol !== "consulta";
     moduleTitle.textContent = canEdit ? "Nuevo reporte de servicio" : "Reportes";
     moduleSubtitle.textContent = canEdit
-      ? "Elija la institucion, los equipos y la plantilla; el sistema genera un PDF por equipo"
+      ? "Elija la empresa, la institucion y los equipos; el sistema genera un PDF por equipo"
       : "Consulta de reportes y documentos publicados";
     reportForm.classList.toggle("hidden", !canEdit);
     return;
@@ -276,15 +310,18 @@ function configureModule() {
   const config = modules[activeModule];
   moduleTitle.textContent = config.title;
   moduleSubtitle.textContent = config.subtitle;
-  recordForm.querySelector('[data-field="nombre"] > span').textContent = config.nameLabel;
+  if (config.nameLabel) recordForm.querySelector('[data-field="nombre"] > span').textContent = config.nameLabel;
   recordForm.querySelectorAll("[data-field]").forEach((label) => {
     const name = label.dataset.field;
     const control = recordForm.elements[name];
     label.classList.toggle("hidden", !config.fields.includes(name));
-    control.required = config.required.includes(name);
+    if (control instanceof HTMLInputElement || control instanceof HTMLSelectElement) {
+      control.required = config.required.includes(name);
+    }
   });
-  recordForm.classList.toggle("hidden", currentUser?.rol === "consulta");
-  activeCheck.classList.toggle("hidden", config.createOnly === true);
+  if (config.companyLegend) document.querySelector("#companyLegend").textContent = config.companyLegend;
+  recordForm.classList.toggle("hidden", !canCreateRecords(config));
+  activeCheck.classList.toggle("hidden", config.fixedActive === true);
   catalogSearch.value = "";
   resetForm();
 }
@@ -295,11 +332,23 @@ function resetForm() {
   recordForm.elements.id.value = "";
   recordForm.elements.activo.checked = config?.activeValue ?? true;
   recordForm.classList.remove("editing");
-  if (!config) return;
+  if (!config || config.readOnly) return;
   recordFormTitle.textContent = `Nuevo ${config.singular}`;
   const password = recordForm.elements.password_temporal;
   password.required = activeModule === "usuarios";
   password.closest("label").firstChild.textContent = "Contrasena temporal";
+  checkSingleCompany();
+}
+
+// FormData conserva solo el ultimo valor repetido; las casillas se leen aparte.
+function checkedValues(form, name) {
+  return [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((input) => input.value);
+}
+
+// Si solo hay una empresa disponible (generador con una empresa) se marca de antemano.
+function checkSingleCompany() {
+  const boxes = companyOptions.querySelectorAll('input[name="id_proveedores"]');
+  if (boxes.length === 1 && activeModule !== "usuarios") boxes[0].checked = true;
 }
 
 /* Catalogos */
@@ -320,8 +369,8 @@ function renderRows() {
     <tr>
       ${config.columns.map((column) => `<td>${renderCell(column, row[column])}</td>`).join("")}
       <td class="actions">
-        ${currentUser?.rol !== "consulta" && !config.createOnly ? `<button class="secondary small" data-edit="${escapeHtml(row[config.id])}">Editar</button>` : ""}
-        ${currentUser?.rol === "administrador" && row.activo && !config.createOnly ? `<button class="secondary small danger-text" data-delete="${escapeHtml(row[config.id])}">Desactivar</button>` : ""}
+        ${currentUser?.rol === "administrador" && !config.readOnly ? `<button class="secondary small" data-edit="${escapeHtml(row[config.id])}">Editar</button>` : ""}
+        ${currentUser?.rol === "administrador" && !config.readOnly && (row.activo || config.hardDelete) ? `<button class="secondary small danger-text" data-delete="${escapeHtml(row[config.id])}">${config.hardDelete ? "Eliminar" : "Desactivar"}</button>` : ""}
       </td>
     </tr>`).join("");
 }
@@ -334,6 +383,17 @@ async function loadRows() {
       .filter((item) => item.activo)
       .map((item) => `<option value="${escapeHtml(item.id_institucion)}">${escapeHtml(item.nombre)}</option>`)
       .join("");
+  }
+  if (config.fields.includes("id_proveedores")) {
+    const companies = (await api("/api/proveedores")).filter((item) => item.activo && item.codigo_plantilla);
+    companyOptions.innerHTML = companies.length
+      ? companies.map((item) => `
+        <label class="check">
+          <input type="checkbox" name="id_proveedores" value="${escapeHtml(item.id_proveedor)}">
+          ${escapeHtml(item.nombre)}
+        </label>`).join("")
+      : '<p class="hint">No hay empresas activas disponibles.</p>';
+    checkSingleCompany();
   }
   if (activeModule === "usuarios") {
     const roles = await api("/api/roles");
@@ -355,16 +415,22 @@ recordForm.addEventListener("submit", async (event) => {
   const payload = { activo: config.activeValue ?? recordForm.elements.activo.checked };
   for (const field of config.fields) {
     if (field === "password_temporal" && !values.password_temporal) continue;
-    payload[field] = values[field];
+    payload[field] = field === "id_proveedores" ? checkedValues(recordForm, field) : values[field];
+  }
+  if (activeModule === "instituciones" && payload.id_proveedores.length === 0) {
+    showMessage("Seleccione al menos una empresa que atienda la institucion.");
+    return;
   }
   try {
-    await api(id ? `${config.endpoint}/${id}` : config.endpoint, {
+    const saved = await api(id ? `${config.endpoint}/${id}` : config.endpoint, {
       method: id ? "PUT" : "POST",
       body: JSON.stringify(payload),
     });
     resetForm();
     await loadRows();
-    showMessage(id ? "Cambios guardados." : "Registro creado.", "success");
+    showMessage(saved?.ya_existia
+      ? `La institucion "${saved.nombre}" ya estaba registrada; se enlazo a la empresa seleccionada sin duplicarla.`
+      : id ? "Cambios guardados." : "Registro creado.", "success");
   } catch (error) {
     showMessage(error.message);
   }
@@ -381,7 +447,14 @@ tableBody.addEventListener("click", async (event) => {
     resetForm();
     recordForm.elements.id.value = row[config.id];
     for (const field of config.fields) {
-      if (field !== "password_temporal") recordForm.elements[field].value = row[field] ?? "";
+      if (field === "id_proveedores") {
+        const linked = (row.id_proveedores || []).map(String);
+        companyOptions.querySelectorAll('input[name="id_proveedores"]').forEach((input) => {
+          input.checked = linked.includes(input.value);
+        });
+      } else if (field !== "password_temporal") {
+        recordForm.elements[field].value = row[field] ?? "";
+      }
     }
     recordForm.elements.activo.checked = row.activo;
     if (activeModule === "usuarios") {
@@ -397,11 +470,14 @@ tableBody.addEventListener("click", async (event) => {
 
   if (deleteId) {
     const row = catalogRows.find((item) => String(item[config.id]) === deleteId);
-    if (!window.confirm(`¿Desactivar "${row?.nombre ?? deleteId}"? Dejara de aparecer en los formularios.`)) return;
+    const question = config.hardDelete
+      ? `¿Eliminar "${row?.nombre ?? deleteId}"? Esta accion no se puede deshacer.`
+      : `¿Desactivar "${row?.nombre ?? deleteId}"? Dejara de aparecer en los formularios.`;
+    if (!window.confirm(question)) return;
     try {
       await api(`${config.endpoint}/${deleteId}`, { method: "DELETE" });
       await loadRows();
-      showMessage("Registro desactivado.", "success");
+      showMessage(config.hardDelete ? "Registro eliminado." : "Registro desactivado.", "success");
     } catch (error) {
       showMessage(error.message);
     }
@@ -414,6 +490,25 @@ clearButton.addEventListener("click", resetForm);
 
 function selectedInstitutionId() {
   return reportForm.elements.id_institucion_reporte.value;
+}
+
+function selectedCompanyId() {
+  return reportForm.querySelector('input[name="id_proveedor_plantilla"]:checked')?.value || "";
+}
+
+// Solo se ofrecen las instituciones que atiende la empresa elegida.
+function fillInstitutions() {
+  const company = selectedCompanyId();
+  const select = reportForm.elements.id_institucion_reporte;
+  const items = company
+    ? reportCatalogs.instituciones.filter((item) => item.id_proveedores.includes(company))
+    : [];
+  const placeholder = !company ? "Seleccione primero la empresa"
+    : items.length ? "Seleccione institucion" : "La empresa no tiene instituciones asignadas";
+  select.innerHTML = selectOptions(placeholder, items.map((item) => [item.id, item.nombre]));
+  if (items.length === 1) select.value = String(items[0].id);
+  select.disabled = !company;
+  onInstitutionChange();
 }
 
 function equipmentForSelectedInstitution() {
@@ -434,7 +529,7 @@ function equipmentMeta(item) {
 function updateReportSummary() {
   const count = selectedEquipmentIds.length;
   reportSummary.textContent = count
-    ? `${count} equipo(s) seleccionado(s): se crearan ${count} borrador(es).`
+    ? `${count} equipo(s) seleccionado(s): se publicaran ${count} reporte(s).`
     : "Ningun equipo seleccionado.";
 }
 
@@ -484,7 +579,9 @@ function fillServices() {
   const institution = selectedInstitutionId();
   const select = reportForm.elements.id_servicio_solicitante;
   const services = reportCatalogs.servicios.filter((item) => String(item.id_institucion) === institution);
-  select.innerHTML = `<option value="">${institution ? "Seleccione servicio" : "Seleccione primero la institucion"}</option>`
+  const placeholder = !institution ? "Seleccione primero la institucion"
+    : services.length ? "Seleccione servicio" : "Sin servicios: registrelo en Servicios solicitantes";
+  select.innerHTML = `<option value="">${placeholder}</option>`
     + services.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.servicio)}</option>`).join("");
   if (services.length === 1) select.value = String(services[0].id);
   select.disabled = !institution;
@@ -503,10 +600,7 @@ function onInstitutionChange() {
 
 async function loadReportCatalogs() {
   reportCatalogs = await api("/api/reportes/catalogos");
-  const institutions = new Map();
-  for (const item of reportCatalogs.servicios) institutions.set(String(item.id_institucion), item.institucion);
-  reportForm.elements.id_institucion_reporte.innerHTML = '<option value="">Seleccione institucion</option>'
-    + [...institutions].map(([id, name]) => `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join("");
+  fillReportFilters(reportCatalogs.instituciones.map((item) => [item.id, item.nombre]));
   templateOptions.innerHTML = reportCatalogs.proveedores.length
     ? reportCatalogs.proveedores.map((company, index) => `
       <label class="template-option">
@@ -515,8 +609,37 @@ async function loadReportCatalogs() {
         <span>${escapeHtml(company.nombre)}</span>
         <small>${company.plantilla.pedido ? "Incluye pedido / NOG" : "Sin pedido / NOG"}</small>
       </label>`).join("")
-    : '<p class="hint">No hay empresas activas con plantilla. Revise el modulo Empresas y proveedores.</p>';
+    : '<p class="hint">Su usuario no tiene empresas asignadas. Solicite al administrador que lo enlace a una empresa.</p>';
   resetReportForm();
+}
+
+function technicianCheckboxes(selected = []) {
+  if (!reportCatalogs.tecnicos.length) {
+    return '<p class="hint">No hay tecnicos activos. El administrador los registra en el modulo Tecnicos.</p>';
+  }
+  return reportCatalogs.tecnicos.map((item) => `
+    <label class="check">
+      <input type="checkbox" name="id_tecnicos" value="${escapeHtml(item.id)}" ${selected.includes(String(item.id)) ? "checked" : ""}>
+      ${escapeHtml(item.nombre)}${item.especialidad ? ` <span class="muted">· ${escapeHtml(item.especialidad)}</span>` : ""}
+    </label>`).join("");
+}
+
+function checkedTechnicians(form) {
+  return checkedValues(form, "id_tecnicos");
+}
+
+function selectOptions(placeholder, items) {
+  return `<option value="">${escapeHtml(placeholder)}</option>`
+    + items.map(([id, name]) => `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join("");
+}
+
+function fillReportFilters(institutions) {
+  const filters = reportFilterForm.elements;
+  filters.id_institucion.innerHTML = selectOptions("Todas las instituciones", institutions);
+  filters.id_servicio_solicitante.innerHTML = selectOptions("Todos los servicios",
+    reportCatalogs.servicios.map((item) => [item.id, item.nombre]));
+  filters.id_tecnico.innerHTML = selectOptions("Todos los tecnicos",
+    reportCatalogs.tecnicos.map((item) => [item.id, item.nombre]));
 }
 
 function resetReportForm() {
@@ -524,7 +647,10 @@ function resetReportForm() {
   reportForm.elements.fecha_reporte.value = todayIso();
   reportForm.elements.titulo.dataset.auto = "1";
   newEquipmentPanel.classList.add("hidden");
-  onInstitutionChange();
+  document.querySelector("#technicianOptions").innerHTML = technicianCheckboxes();
+  const companies = templateOptions.querySelectorAll('input[name="id_proveedor_plantilla"]');
+  if (companies.length === 1) companies[0].checked = true;
+  fillInstitutions();
   updateTemplatePreview();
 }
 
@@ -660,7 +786,10 @@ function updateTemplatePreview() {
     <div class="sheet-signatures">${template.signatures.map((signature) => `<div><strong>${escapeHtml(signature)}</strong><span>NOMBRE, FIRMA Y SELLO</span></div>`).join("")}</div>`;
 }
 
-templateOptions.addEventListener("change", updateTemplatePreview);
+templateOptions.addEventListener("change", () => {
+  fillInstitutions();
+  updateTemplatePreview();
+});
 
 /* Reportes: creacion y consulta */
 
@@ -716,6 +845,9 @@ function openReportReview() {
         ${reviewField("Plantilla", selectedCompany?.nombre)}
         ${reviewField("Tipo de servicio", serviceTypeLabels[values.tipo_servicio])}
         ${reviewField("Asunto", values.titulo)}
+        ${reviewField("Técnicos", reportCatalogs.tecnicos
+          .filter((item) => checkedTechnicians(reportForm).includes(String(item.id)))
+          .map((item) => item.nombre).join(", "))}
       </div>
     </section>
     <section>
@@ -751,6 +883,7 @@ reviewConfirm.addEventListener("click", async () => {
   const values = Object.fromEntries(new FormData(reportForm));
   delete values.id_institucion_reporte;
   values.id_equipos_medicos = selectedEquipmentIds;
+  values.id_tecnicos = checkedTechnicians(reportForm);
   values.publicar = true;
   reviewConfirm.disabled = true;
   reviewConfirm.textContent = "Creando y publicando…";
@@ -779,19 +912,21 @@ reviewConfirm.addEventListener("click", async () => {
 });
 
 function renderReports(rows) {
-  const columns = ["codigo_reporte", "fecha_reporte", "institucion", "servicio_solicitante", "proveedor_plantilla", "titulo", "estado"];
+  const columns = ["codigo_reporte", "fecha_reporte", "institucion", "servicio_solicitante", "proveedor_plantilla", "titulo", "creador", "estado"];
   reportTableHead.innerHTML = headerCells(columns);
   if (!rows.length) {
     reportTableBody.innerHTML = `<tr><td class="empty" colspan="${columns.length + 1}">No se encontraron reportes.</td></tr>`;
     return;
   }
-  const canEdit = currentUser?.rol !== "consulta";
+  // puede_editar lo calcula el servidor: el administrador o quien creo el reporte.
   reportTableBody.innerHTML = rows.map((row) => `<tr>
     ${columns.map((column) => `<td>${renderCell(column, row[column])}</td>`).join("")}
     <td class="actions">
       ${row.estado === "borrador" ? `<button class="secondary small" data-preview="${row.id_reporte}">Vista previa</button>` : ""}
-      ${canEdit && row.estado === "borrador" ? `<button class="small" data-publish="${row.id_reporte}" data-code="${escapeHtml(row.codigo_reporte)}">Publicar</button>` : ""}
+      ${row.puede_editar ? `<button class="secondary small" data-edit-report="${row.id_reporte}">Editar</button>` : ""}
+      ${row.puede_editar && row.estado === "borrador" ? `<button class="small" data-publish="${row.id_reporte}" data-code="${escapeHtml(row.codigo_reporte)}">Publicar</button>` : ""}
       ${row.url_archivo ? `<button class="secondary small" data-file="${row.id_reporte}">Ver PDF</button>` : ""}
+      ${currentUser?.rol === "administrador" && row.estado !== "anulado" ? `<button class="secondary small danger-text" data-annul="${row.id_reporte}" data-code="${escapeHtml(row.codigo_reporte)}">Anular</button>` : ""}
     </td>
   </tr>`).join("");
 }
@@ -807,8 +942,28 @@ reportFilterForm.addEventListener("submit", async (event) => {
   await loadReports().catch((error) => showMessage(error.message));
 });
 
+// El evento reset limpia los campos despues de este manejador; se consulta en la siguiente vuelta.
+reportFilterForm.addEventListener("reset", () => {
+  setTimeout(() => loadReports().catch((error) => showMessage(error.message)));
+});
+
 reportTableBody.addEventListener("click", async (event) => {
-  const { preview, file, publish, code } = event.target.dataset;
+  const { preview, file, publish, code, editReport, annul } = event.target.dataset;
+  if (editReport) {
+    await openReportEdit(editReport).catch((error) => showMessage(error.message));
+    return;
+  }
+  if (annul) {
+    if (!window.confirm(`¿Anular ${code}? El reporte y su PDF se conservan, pero quedaran marcados como anulados.`)) return;
+    try {
+      await api(`/api/reportes/${annul}`, { method: "DELETE" });
+      await loadReports();
+      showMessage(`Reporte ${code} anulado.`, "success");
+    } catch (error) {
+      showMessage(error.message);
+    }
+    return;
+  }
   if (preview) {
     window.open(`/api/reportes/${preview}/vista-previa`, "_blank");
     return;
@@ -826,6 +981,41 @@ reportTableBody.addEventListener("click", async (event) => {
     showMessage(`Reporte ${code} publicado y almacenado.`, "success");
   } catch (error) {
     event.target.disabled = false;
+    showMessage(error.message);
+  }
+});
+
+/* Correccion de reportes */
+
+const reportEditDialog = document.querySelector("#reportEditDialog");
+const reportEditForm = document.querySelector("#reportEditForm");
+const reportEditFields = ["id_reporte", "titulo", "fecha_reporte", "tipo_servicio",
+  "numero_pedido_nog", "especificaciones_tecnicas", "recomendaciones"];
+
+async function openReportEdit(id) {
+  const report = await api(`/api/reportes/${id}`);
+  reportEditForm.reset();
+  for (const field of reportEditFields) reportEditForm.elements[field].value = report[field] ?? "";
+  document.querySelector("#editTechnicianOptions").innerHTML = technicianCheckboxes(report.id_tecnicos);
+  document.querySelector("#reportEditCode").textContent = `${report.codigo_reporte} · ${report.descripcion_equipo ?? ""}`;
+  reportEditDialog.showModal();
+}
+
+document.querySelector("#reportEditClose").addEventListener("click", () => reportEditDialog.close());
+document.querySelector("#reportEditCancel").addEventListener("click", () => reportEditDialog.close());
+
+reportEditForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const { id_reporte: id, ...values } = Object.fromEntries(new FormData(reportEditForm));
+  values.id_tecnicos = checkedTechnicians(reportEditForm);
+  try {
+    const updated = await api(`/api/reportes/${id}`, { method: "PUT", body: JSON.stringify(values) });
+    reportEditDialog.close();
+    await loadReports();
+    showMessage(updated.estado === "publicado"
+      ? `Reporte ${updated.codigo_reporte} corregido; se genero un PDF nuevo.`
+      : `Reporte ${updated.codigo_reporte} actualizado.`, "success");
+  } catch (error) {
     showMessage(error.message);
   }
 });
