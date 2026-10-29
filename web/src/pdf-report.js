@@ -4,6 +4,10 @@ const { resolveReportTemplate } = require("./report-templates");
 
 const LEFT = 38;
 const WIDTH = 536;
+const PAGE_HEIGHT = 792;
+// Espacio entre el pie y el borde inferior de la hoja carta.
+const FOOTER_MARGIN = 22;
+const DEFAULT_FOOTER_HEIGHT = 18;
 const SERVICE_TYPES = [
   ["garantia", "GARANTIA"], ["preventivo", "MANTENIMIENTO\nPREVENTIVO"],
   ["correctivo", "MANTENIMIENTO\nCORRECTIVO"],
@@ -50,8 +54,8 @@ function drawPage(doc, template, report, continuation) {
     drawFooter(doc, template);
   } else {
     doc.font("Helvetica").fontSize(7).fillColor("#345478")
-      .text(report.pie_pagina || `${template.name} · Reporte de servicio`, LEFT, 746,
-        { width: WIDTH, height: 28, align: "center" });
+      .text(report.pie_pagina || `${template.name} · Reporte de servicio`, LEFT, footerTop(doc, template),
+        { width: WIDTH, height: DEFAULT_FOOTER_HEIGHT, align: "center" });
   }
   doc.restore();
   doc.font("Helvetica").fontSize(10).fillColor("#111111");
@@ -59,9 +63,24 @@ function drawPage(doc, template, report, continuation) {
   doc.y = 125;
 }
 
+// El pie se ancla al borde inferior de la hoja, sin depender del largo del contenido.
+function footerTop(doc, template) {
+  if (!template.footer) return PAGE_HEIGHT - FOOTER_MARGIN - DEFAULT_FOOTER_HEIGHT;
+  doc.font("Helvetica-Bold").fontSize(7.5);
+  const height = Math.max(
+    doc.heightOfString(template.footer.left.join("\n"), { width: 240, lineGap: 2 }),
+    doc.heightOfString(template.footer.right.join("\n"), { width: 280, lineGap: 2 }));
+  return PAGE_HEIGHT - FOOTER_MARGIN - height;
+}
+
+// Las firmas quedan justo encima del pie: la linea va 44 pt sobre el pie (58 pt si va escalonada).
+function signatureTop(doc, template) {
+  return footerTop(doc, template) - (template.staggerSignatures ? 58 : 44);
+}
+
 // Pie fijo de la empresa: identidad a la izquierda y contacto a la derecha.
 function drawFooter(doc, template) {
-  const y = 682;
+  const y = footerTop(doc, template);
   doc.font("Helvetica-Bold").fontSize(7.5).fillColor(template.color)
     .text(template.footer.left.join("\n"), LEFT, y, { width: 240, align: "center", lineGap: 2 })
     .text(template.footer.right.join("\n"), LEFT + WIDTH - 280, y, { width: 280, align: "right", lineGap: 2 });
@@ -107,7 +126,7 @@ function section(doc, template, label, value, y, height) {
 function drawSignatures(doc, template, report) {
   template.signatures.forEach((title, index) => {
     const x = LEFT + index * 179;
-    const y = 610 + (template.staggerSignatures && index === 1 ? 14 : 0);
+    const y = signatureTop(doc, template) + (template.staggerSignatures && index === 1 ? 14 : 0);
     if (index === 0 && report.creador) {
       doc.font("Helvetica").fontSize(8).fillColor("#111111")
         .text(report.creador, x, y - 12, { width: 169, align: "center", lineBreak: false, ellipsis: true });
@@ -133,13 +152,14 @@ function generateReportPdf(report) {
     doc.on("error", reject);
     try {
        // El formato contractual es de una sola hoja; no se crean continuaciones.
-       const decorate = () => {
+       // Pie y firmas se dibujan bajo el margen inferior; sin el margen PDFKit no abre otra hoja.
+       const withoutBottomMargin = (draw) => {
          const bottom = doc.page.margins.bottom;
          doc.page.margins.bottom = 0;
-         drawPage(doc, template, report, false);
+         draw();
          doc.page.margins.bottom = bottom;
        };
-       decorate();
+       withoutBottomMargin(() => drawPage(doc, template, report, false));
       let y = field(doc, template, "FECHA", report.fecha_reporte, LEFT, 130, 240);
       if (template.pedido) {
         y = Math.max(y, field(doc, template, "NUMERO DE PEDIDO Y NOG", report.numero_pedido_nog, 320, 130, 254));
@@ -165,14 +185,15 @@ function generateReportPdf(report) {
          throw Object.assign(new Error("Los datos generales son demasiado extensos para el formato de una hoja."), { status: 400 });
        }
        const sectionsTop = Math.max(y + 4, 390);
-       const available = 590 - sectionsTop;
+       // Las secciones crecen hasta el nombre impreso sobre la primera firma.
+       const available = signatureTop(doc, template) - 20 - sectionsTop;
        const specificationsHeight = Math.floor(available * 0.58);
        const recommendationsHeight = available - specificationsHeight;
        section(doc, template, "ESPECIFICACIONES TECNICAS", report.especificaciones_tecnicas,
          sectionsTop, specificationsHeight);
        section(doc, template, "RECOMENDACIONES", report.recomendaciones,
          sectionsTop + specificationsHeight, recommendationsHeight);
-       drawSignatures(doc, template, report);
+       withoutBottomMargin(() => drawSignatures(doc, template, report));
       doc.end();
     } catch (error) {
       reject(error);
