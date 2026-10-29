@@ -99,7 +99,7 @@ fuera de Git.
 ## Limitaciones
 
 - La aplicación está publicada en
-  https://meditec-web-production.up.railway.app. El 27/10/2026 se verificó
+  https://reportes-web-production.up.railway.app. El 27/10/2026 se verificó
   `/api/health`, el acceso de administrador y la publicación de un PDF en el
   Bucket de Railway.
 - La validación local fue sobre una base existente migrada a PostgreSQL 15.2.

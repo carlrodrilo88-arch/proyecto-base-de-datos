@@ -43,7 +43,7 @@ aplicadas. El DDL actual ya incorpora los cambios para instalaciones nuevas.
 
 El 27/10/2026 se instalo la base desde cero en el PostgreSQL de Railway con el
 orden publico de `INSTALL.md` y se publico la web en
-https://meditec-web-production.up.railway.app.
+https://reportes-web-production.up.railway.app.
 
 Para subir solo la aplicacion desde la raiz del repositorio:
 

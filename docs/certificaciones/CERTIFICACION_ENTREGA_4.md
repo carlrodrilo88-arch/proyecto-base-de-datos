@@ -38,7 +38,7 @@ con evidencia.
 | Informe y trazabilidad | Cumple | Informe final y matriz final incluidos. |
 | Datos mínimos por tabla principal | Pendiente | No todas las tablas principales alcanzan 50 registros. |
 | Instalación limpia final | Cumple | Ejecutada el 27/10/2026 en una base vacía de Railway (PostgreSQL 18.6), sin `001_seed.sql`. |
-| Despliegue público | Cumple | https://meditec-web-production.up.railway.app; `/api/health` responde 200, el login de administrador funciona y un reporte publicado guardó su PDF en el Bucket `meditec-pdfs`. |
+| Despliegue público | Cumple | https://reportes-web-production.up.railway.app; `/api/health` responde 200, el login de administrador funciona y un reporte publicado guardó su PDF en el Bucket `meditec-pdfs`. |
 | Flujos manuales finales | Pendiente | Publicación real, segundo rol, lote, edición/anulación de reportes, técnicos, filtros, auditoría y constancias requieren evidencia. |
 | Defensa oral | Pendiente | Debe realizarla el responsable. |
 | Tag `entrega-4` | Cumple | Creado el 27/10/2026; los puntos pendientes de esta lista se aceptan como limitaciones declaradas. |

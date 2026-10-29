@@ -29,7 +29,7 @@
 | RNF-03 Integridad referencial | PK, FK, UNIQUE, CHECK y acciones referenciales | Cumple |
 | RNF-04 Identificadores únicos | Secuencia y restricción única | Cumple |
 | RNF-05 Consultas indexadas | Índices y vista resumen | Cumple |
-| RNF-06 Acceso desde web | Express y PostgreSQL integrados; publicado en https://meditec-web-production.up.railway.app | Cumple |
+| RNF-06 Acceso desde web | Express y PostgreSQL integrados; publicado en https://reportes-web-production.up.railway.app | Cumple |
 | RNF-07 Sin credenciales | `.env` y almacenamiento excluidos de Git | Cumple |
 | RNF-08 Crecimiento futuro | Migraciones, historial PDF y almacenamiento S3 | Cumple |
 

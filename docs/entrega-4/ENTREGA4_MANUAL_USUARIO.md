@@ -17,7 +17,7 @@ empresa; la instalación y el despliegue se describen en el manual técnico.
 
 | Ambiente | Dirección |
 | --- | --- |
-| Publicado en Railway | https://meditec-web-production.up.railway.app |
+| Publicado en Railway | https://reportes-web-production.up.railway.app |
 | Local (desarrollo) | `http://localhost:3000`, después de iniciar el servidor según el manual técnico |
 
 La aplicación funciona en cualquier computadora con un navegador actualizado

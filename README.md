@@ -6,7 +6,7 @@
 
 **Aplicación:** Node.js, Express, HTML, CSS, JavaScript y PDFKit
 
-**Aplicación publicada:** [https://meditec-web-production.up.railway.app](https://meditec-web-production.up.railway.app)
+**Aplicación publicada:** [https://reportes-web-production.up.railway.app](https://reportes-web-production.up.railway.app)
 
 Proyecto academico para la implementacion de una aplicacion web conectada a
 PostgreSQL, orientada a centralizar la generacion, almacenamiento y consulta de
@@ -106,10 +106,10 @@ en `http://localhost:3000/api/health`.
 ## Aplicación publicada
 
 La aplicación está desplegada en Railway:
-[https://meditec-web-production.up.railway.app](https://meditec-web-production.up.railway.app)
+[https://reportes-web-production.up.railway.app](https://reportes-web-production.up.railway.app)
 
 El estado de la base publicada se consulta en
-[`/api/health`](https://meditec-web-production.up.railway.app/api/health).
+[`/api/health`](https://reportes-web-production.up.railway.app/api/health).
 Las credenciales no se publican en el repositorio.
 
 ## Estado de cierre

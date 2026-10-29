@@ -39,7 +39,7 @@ la revisión visual documentada.
 | CP-E4-DB05 | Verificar funciones y vista | Código, publicación y vista existentes | Objetos encontrados | Aprobado |
 | CP-E4-DB06 | Revisar datos importados | Instituciones, servicios y equipos disponibles | 8, 99 y 286 registros | Aprobado |
 | CP-E4-DB07 | Instalación desde cero | Orden completo sin errores | Ejecutada el 27/10/2026 en base vacía de Railway, PostgreSQL 18.6 | Aprobado |
-| CP-E4-DB08 | Despliegue público | `/api/health` 200 y login | https://meditec-web-production.up.railway.app responde 200; login de administrador aprobado | Aprobado |
+| CP-E4-DB08 | Despliegue público | `/api/health` 200 y login | https://reportes-web-production.up.railway.app responde 200; login de administrador aprobado | Aprobado |
 | CP-E4-DB09 | PDF en Bucket de Railway | El reporte publicado se guarda en el Bucket | Reporte publicado desde la web; el Bucket `meditec-pdfs` registra el objeto PDF | Aprobado |
 | CP-E4-DB10 | Editar y anular reportes como `meditec_web` | `UPDATE` de borrador y anulación aceptados; un reporte anulado no se edita | Prueba en transacción revertida (27/10/2026): edición y anulación correctas; edición sobre anulado afecta 0 filas | Aprobado |
 | CP-E4-DB11 | Editar y eliminar constancias como `meditec_web` | `UPDATE` y `DELETE` sobre `equipos_autorizados` aceptados | Base local sin el nuevo permiso: error 42501. Requiere volver a ejecutar `sql/security/002_usuario_web.sql` | Pendiente |
