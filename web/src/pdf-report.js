@@ -50,7 +50,9 @@ function drawPage(doc, template, report, continuation) {
     doc.font("Helvetica").fontSize(8).fillColor(template.color)
       .text("Continuacion del reporte", LEFT, 105, { lineBreak: false });
   }
-  if (template.footer) {
+  if (template.footerImage) {
+    doc.image(logoPath(template.footerImage), LEFT, footerTop(doc, template), { width: WIDTH });
+  } else if (template.footer) {
     drawFooter(doc, template);
   } else {
     doc.font("Helvetica").fontSize(7).fillColor("#345478")
@@ -65,6 +67,10 @@ function drawPage(doc, template, report, continuation) {
 
 // El pie se ancla al borde inferior de la hoja, sin depender del largo del contenido.
 function footerTop(doc, template) {
+  if (template.footerImage) {
+    const image = doc.openImage(logoPath(template.footerImage));
+    return PAGE_HEIGHT - FOOTER_MARGIN - WIDTH * (image.height / image.width);
+  }
   if (!template.footer) return PAGE_HEIGHT - FOOTER_MARGIN - DEFAULT_FOOTER_HEIGHT;
   doc.font("Helvetica-Bold").fontSize(7.5);
   const height = Math.max(

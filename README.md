@@ -6,6 +6,8 @@
 
 **Aplicación:** Node.js, Express, HTML, CSS, JavaScript y PDFKit
 
+**Aplicación publicada:** [https://meditec-web-production.up.railway.app](https://meditec-web-production.up.railway.app)
+
 Proyecto academico para la implementacion de una aplicacion web conectada a
 PostgreSQL, orientada a centralizar la generacion, almacenamiento y consulta de
 reportes PDF de la empresa Meditec.

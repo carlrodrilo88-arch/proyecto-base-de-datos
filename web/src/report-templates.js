@@ -2,6 +2,8 @@ const templates = {
   teknor: {
     key: "teknor", name: "Teknor", logo: "/logos/teknor.png",
     color: "#0074b9", pedido: false,
+    // Barra corporativa del formato impreso, a lo ancho del contenido.
+    footerImage: "/logos/teknor-pie.png",
     signatures: ["SERVICIO TECNICO", "DEPARTAMENTO DE MANTENIMIENTO", "SERVICIO SOLICITANTE"],
   },
   meditec: {
