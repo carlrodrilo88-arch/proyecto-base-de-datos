@@ -139,6 +139,19 @@ CREATE TABLE proveedor_institucion (
         ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
+-- Empresas para las que trabaja cada tecnico; un reporte solo admite tecnicos de su empresa.
+CREATE TABLE proveedor_tecnico (
+    id_proveedor BIGINT NOT NULL,
+    id_tecnico BIGINT NOT NULL,
+    PRIMARY KEY (id_proveedor, id_tecnico),
+    CONSTRAINT fk_proveedor_tecnico_proveedores
+        FOREIGN KEY (id_proveedor) REFERENCES proveedores(id_proveedor)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_proveedor_tecnico_tecnicos
+        FOREIGN KEY (id_tecnico) REFERENCES tecnicos(id_tecnico)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
 CREATE TABLE reportes (
     id_reporte BIGSERIAL PRIMARY KEY,
     codigo_reporte VARCHAR(40) NOT NULL UNIQUE,
@@ -270,6 +283,7 @@ CREATE UNIQUE INDEX uq_archivo_pdf_activo_por_reporte
     ON archivos_pdf(id_reporte)
     WHERE estado = 'activo';
 CREATE INDEX idx_proveedor_institucion_institucion ON proveedor_institucion(id_institucion);
+CREATE INDEX idx_proveedor_tecnico_tecnico ON proveedor_tecnico(id_tecnico);
 -- Una institucion se registra una sola vez aunque cambien mayusculas o espacios.
 CREATE UNIQUE INDEX uq_instituciones_nombre_normalizado ON instituciones (LOWER(BTRIM(nombre)));
 CREATE INDEX idx_auditoria_entidad ON auditoria_eventos(entidad, entidad_id);

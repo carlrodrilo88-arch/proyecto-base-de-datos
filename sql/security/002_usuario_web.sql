@@ -24,7 +24,7 @@ GRANT USAGE ON SCHEMA public TO meditec_web;
 GRANT SELECT ON roles, usuarios, servicios_solicitantes, tecnicos,
     instituciones, proveedores, equipos_autorizados, equipos_medicos, reportes, archivos_pdf,
     reporte_proveedor, reporte_tecnico, vw_reportes_resumen,
-    usuario_proveedor, proveedor_institucion
+    usuario_proveedor, proveedor_institucion, proveedor_tecnico
 TO meditec_web;
 
 -- La bitacora solo se consulta desde la web; la escriben los triggers (SECURITY DEFINER).
@@ -42,7 +42,7 @@ GRANT INSERT, UPDATE, DELETE ON equipos_autorizados TO meditec_web;
 GRANT INSERT ON reporte_proveedor TO meditec_web;
 GRANT INSERT, DELETE ON reporte_tecnico TO meditec_web;
 -- Enlaces de empresa: el administrador los reasigna, por eso se reemplazan completos.
-GRANT INSERT, DELETE ON usuario_proveedor, proveedor_institucion TO meditec_web;
+GRANT INSERT, DELETE ON usuario_proveedor, proveedor_institucion, proveedor_tecnico TO meditec_web;
 GRANT USAGE, SELECT ON SEQUENCE
     servicios_solicitantes_id_servicio_solicitante_seq,
     usuarios_id_usuario_seq,

@@ -130,6 +130,13 @@ function institutionInScope(column, param) {
     WHERE pi.id_institucion=${column} AND pi.id_proveedor = ANY(${param}::bigint[])))`;
 }
 
+// Condicion SQL: el tecnico de la columna dada trabaja para alguna empresa del alcance.
+function technicianInScope(column, param) {
+  return `(${param}::bigint[] IS NULL OR EXISTS (
+    SELECT 1 FROM proveedor_tecnico pt
+    WHERE pt.id_tecnico=${column} AND pt.id_proveedor = ANY(${param}::bigint[])))`;
+}
+
 async function assertInstitutionInScope(scope, institucionId) {
   const result = await pool.query(
     `SELECT 1 FROM instituciones i WHERE i.id_institucion=$1 AND ${institutionInScope("i.id_institucion", "$2")}`,
@@ -138,10 +145,11 @@ async function assertInstitutionInScope(scope, institucionId) {
   if (!result.rows[0]) throw invalidInput("La institucion no pertenece a sus empresas");
 }
 
-// Reemplaza los enlaces con empresas de un usuario o institucion; false si alguna no existe o esta inactiva.
+// Reemplaza los enlaces con empresas de un usuario, institucion o tecnico; false si alguna no existe o esta inactiva.
 const companyLinks = {
   usuario: { table: "usuario_proveedor", column: "id_usuario" },
   institucion: { table: "proveedor_institucion", column: "id_institucion" },
+  tecnico: { table: "proveedor_tecnico", column: "id_tecnico" },
 };
 
 async function replaceCompanyLinks(client, owner, ownerId, companyIds) {
@@ -497,30 +505,47 @@ app.delete("/api/servicios-solicitantes/:id", requireAuth, requireRole("administ
   res.status(204).send();
 }));
 
-app.get("/api/tecnicos", requireAuth, asyncHandler(async (_req, res) => {
+// Cada usuario ve solo los tecnicos de sus empresas; las empresas mostradas tambien se limitan a las suyas.
+app.get("/api/tecnicos", requireAuth, asyncHandler(async (req, res) => {
   const result = await pool.query(
-    `SELECT id_tecnico, nombre, telefono, correo, especialidad, activo
-     FROM tecnicos
-     ORDER BY id_tecnico DESC`
+    `SELECT t.id_tecnico, t.nombre, t.telefono, t.correo, t.especialidad, t.activo,
+       ARRAY(SELECT pt.id_proveedor::text FROM proveedor_tecnico pt
+             WHERE pt.id_tecnico=t.id_tecnico
+               AND ($1::bigint[] IS NULL OR pt.id_proveedor = ANY($1::bigint[]))) AS id_proveedores,
+       (SELECT STRING_AGG(p.nombre, ', ' ORDER BY p.nombre) FROM proveedor_tecnico pt
+        JOIN proveedores p ON p.id_proveedor=pt.id_proveedor
+        WHERE pt.id_tecnico=t.id_tecnico
+          AND ($1::bigint[] IS NULL OR pt.id_proveedor = ANY($1::bigint[]))) AS empresas
+     FROM tecnicos t
+     WHERE ${technicianInScope("t.id_tecnico", "$1")}
+     ORDER BY t.id_tecnico DESC`,
+    [await companyScope(req)]
   );
   res.json(result.rows);
 }));
 
-// Tecnicos y empresas solo los administra el administrador.
+// Tecnicos y empresas solo los administra el administrador; todo tecnico pertenece al menos a una empresa.
 app.post("/api/tecnicos", requireAuth, requireRole("administrador"), validationHandler(asyncHandler(async (req, res) => {
   const nombre = normalizeText(req.body.nombre, "nombre", 120, true);
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
   const especialidad = normalizeText(req.body.especialidad, "especialidad", 120);
   const activo = normalizeActive(req.body.activo);
+  const empresaIds = validateCompanyIds(req.body.id_proveedores);
 
-  const result = await pool.query(
-    `INSERT INTO tecnicos (nombre, telefono, correo, especialidad, activo)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id_tecnico, nombre, telefono, correo, especialidad, activo`,
-    [nombre, telefono, correo, especialidad, activo]
-  );
-  res.status(201).json(result.rows[0]);
+  const created = await withTransaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO tecnicos (nombre, telefono, correo, especialidad, activo)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id_tecnico, nombre, telefono, correo, especialidad, activo`,
+      [nombre, telefono, correo, especialidad, activo]
+    );
+    if (!(await replaceCompanyLinks(client, "tecnico", result.rows[0].id_tecnico, empresaIds))) {
+      throw invalidInput("Todas las empresas deben existir y estar activas");
+    }
+    return result.rows[0];
+  });
+  res.status(201).json(created);
 })));
 
 app.put("/api/tecnicos/:id", requireAuth, requireRole("administrador"), validationHandler(asyncHandler(async (req, res) => {
@@ -531,15 +556,22 @@ app.put("/api/tecnicos/:id", requireAuth, requireRole("administrador"), validati
   const correo = normalizeEmail(req.body.correo);
   const especialidad = normalizeText(req.body.especialidad, "especialidad", 120);
   const activo = normalizeActive(req.body.activo);
-  const result = await pool.query(
-    `UPDATE tecnicos
-     SET nombre = $1, telefono = $2, correo = $3, especialidad = $4, activo = $5
-     WHERE id_tecnico = $6
-     RETURNING id_tecnico, nombre, telefono, correo, especialidad, activo`,
-    [nombre, telefono, correo, especialidad, activo, id]
-  );
-  if (!result.rows[0]) return res.status(404).json({ error: "Registro no encontrado" });
-  res.json(result.rows[0]);
+  const empresaIds = validateCompanyIds(req.body.id_proveedores);
+  const updated = await withTransaction(async (client) => {
+    const result = await client.query(
+      `UPDATE tecnicos
+       SET nombre = $1, telefono = $2, correo = $3, especialidad = $4, activo = $5
+       WHERE id_tecnico = $6
+       RETURNING id_tecnico, nombre, telefono, correo, especialidad, activo`,
+      [nombre, telefono, correo, especialidad, activo, id]
+    );
+    if (result.rows[0] && !(await replaceCompanyLinks(client, "tecnico", id, empresaIds))) {
+      throw invalidInput("Todas las empresas deben existir y estar activas");
+    }
+    return result.rows[0];
+  });
+  if (!updated) return res.status(404).json({ error: "Registro no encontrado" });
+  res.json(updated);
 })));
 
 app.delete("/api/tecnicos/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
@@ -781,7 +813,11 @@ app.get("/api/reportes/catalogos", requireAuth, asyncHandler(async (req, res) =>
       em.numero_bien, em.numero_serie, em.marca, em.modelo
       FROM equipos_medicos em
       WHERE em.activo=TRUE AND ${institutionInScope("em.id_institucion", "$1")} ORDER BY em.nombre`, [scope]),
-    pool.query("SELECT id_tecnico AS id, nombre, especialidad FROM tecnicos WHERE activo=TRUE ORDER BY nombre"),
+    pool.query(`SELECT t.id_tecnico AS id, t.nombre, t.especialidad,
+      ARRAY(SELECT pt.id_proveedor::text FROM proveedor_tecnico pt WHERE pt.id_tecnico=t.id_tecnico
+            AND ($1::bigint[] IS NULL OR pt.id_proveedor = ANY($1::bigint[]))) AS id_proveedores
+      FROM tecnicos t
+      WHERE t.activo=TRUE AND ${technicianInScope("t.id_tecnico", "$1")} ORDER BY t.nombre`, [scope]),
     pool.query(`SELECT i.id_institucion AS id, i.nombre,
       ARRAY(SELECT pi.id_proveedor::text FROM proveedor_institucion pi WHERE pi.id_institucion=i.id_institucion
             AND ($1::bigint[] IS NULL OR pi.id_proveedor = ANY($1::bigint[]))) AS id_proveedores
@@ -905,13 +941,18 @@ function withUserTransaction(userId, work) {
   });
 }
 
-// Reemplaza los tecnicos de un reporte; devuelve false si alguno no existe o esta inactivo.
+// Reemplaza los tecnicos de un reporte; devuelve false si alguno no existe, esta inactivo
+// o no trabaja para la empresa que emite el reporte.
 async function assignTechnicians(client, reportId, technicianIds) {
   await client.query("DELETE FROM reporte_tecnico WHERE id_reporte=$1", [reportId]);
   if (!technicianIds.length) return true;
   const result = await client.query(
     `INSERT INTO reporte_tecnico (id_reporte, id_tecnico)
-     SELECT $1, id_tecnico FROM tecnicos WHERE id_tecnico = ANY($2::bigint[]) AND activo=TRUE`,
+     SELECT r.id_reporte, t.id_tecnico
+     FROM reportes r
+     JOIN proveedor_tecnico pt ON pt.id_proveedor=r.id_proveedor_plantilla
+     JOIN tecnicos t ON t.id_tecnico=pt.id_tecnico AND t.activo=TRUE
+     WHERE r.id_reporte=$1 AND t.id_tecnico = ANY($2::bigint[])`,
     [reportId, technicianIds]
   );
   return result.rowCount === technicianIds.length;
@@ -976,7 +1017,7 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
       );
       if (!(await assignTechnicians(client, result.rows[0].id_reporte, tecnicoIds))) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ error: "Todos los tecnicos deben existir y estar activos" });
+        return res.status(400).json({ error: "Todos los tecnicos deben existir, estar activos y pertenecer a la empresa del reporte" });
       }
       created.push(result.rows[0]);
     }
@@ -1066,7 +1107,7 @@ app.get("/api/reportes/:id", requireAuth, asyncHandler(async (req, res) => {
   const result = await pool.query(
     `SELECT id_reporte, codigo_reporte, estado, titulo, TO_CHAR(fecha_reporte, 'YYYY-MM-DD') AS fecha_reporte,
        numero_pedido_nog, tipo_servicio, especificaciones_tecnicas, recomendaciones,
-       descripcion_equipo, marca, modelo, numero_serie, numero_bien,
+       descripcion_equipo, marca, modelo, numero_serie, numero_bien, id_proveedor_plantilla::text,
        ARRAY(SELECT rt.id_tecnico::text FROM reporte_tecnico rt WHERE rt.id_reporte=r.id_reporte) AS id_tecnicos
      FROM reportes r WHERE id_reporte=$1`, [id]
   );
@@ -1100,7 +1141,7 @@ app.put("/api/reportes/:id", requireAuth, requireRole(...allowedEditors), asyncH
       const row = result.rows[0];
       if (!row) return null;
       if (!(await assignTechnicians(client, id, tecnicoIds))) {
-        throw invalidInput("Todos los tecnicos deben existir y estar activos");
+        throw invalidInput("Todos los tecnicos deben existir, estar activos y pertenecer a la empresa del reporte");
       }
       if (row.estado === "publicado") {
         const pdf = await generateReportPdf(await loadReportDetail(id, client));

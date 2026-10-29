@@ -11,6 +11,7 @@ async function main() {
       to_regclass('public.vw_reportes_resumen') IS NOT NULL AS vista,
       to_regclass('public.usuario_proveedor') IS NOT NULL AS empresas_usuario,
       to_regclass('public.proveedor_institucion') IS NOT NULL AS empresas_institucion,
+      to_regclass('public.proveedor_tecnico') IS NOT NULL AS empresas_tecnico,
       EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema='public' AND table_name='reportes'
@@ -60,7 +61,8 @@ async function main() {
       has_table_privilege(current_user, 'reporte_tecnico', 'DELETE') AS reasignar_tecnicos,
       has_table_privilege(current_user, 'auditoria_eventos', 'SELECT') AS leer_auditoria,
       has_table_privilege(current_user, 'usuario_proveedor', 'DELETE') AS asignar_empresas_usuario,
-      has_table_privilege(current_user, 'proveedor_institucion', 'INSERT') AS enlazar_instituciones
+      has_table_privilege(current_user, 'proveedor_institucion', 'INSERT') AS enlazar_instituciones,
+      has_table_privilege(current_user, 'proveedor_tecnico', 'DELETE') AS asignar_empresas_tecnico
   `);
   const denied = Object.entries(access.rows[0]).filter(([, value]) => !value).map(([key]) => key);
   if (denied.length) throw new Error(`Permisos incompletos: ${denied.join(', ')}`);

@@ -106,7 +106,14 @@ mensaje de permisos. `npm run test:db` lista los permisos faltantes.
 | equipos_autorizados | `POST` | `GET` | `PUT /:id` (sigue inactivo) | `DELETE /:id`: eliminación física |
 | roles | Script SQL | `GET /api/roles` | Catálogo fijo | Catálogo fijo |
 | reporte_tecnico (N:M) | Al crear el reporte | Columna Técnicos de la vista y `GET /:id` | Se reemplaza al editar un borrador | Se reemplaza al editar un borrador |
+| proveedor_tecnico (N:M) | Al crear el técnico (al menos una empresa) | Columna Empresas de `GET /api/tecnicos` | Se reemplaza al editar el técnico | Se reemplaza al editar el técnico |
 | auditoria_eventos | Triggers | `GET /api/auditoria` (administrador, últimos 500) | No aplica | No aplica |
+
+Cada técnico pertenece a una o más empresas (`proveedor_tecnico`, migración
+009). Un usuario que no es administrador solo ve los técnicos de sus empresas, y
+el formulario de reportes ofrece únicamente los técnicos de la empresa elegida.
+El servidor lo vuelve a comprobar al guardar: un reporte solo admite técnicos
+activos de la empresa que lo emite.
 
 Los catálogos y los reportes no se borran físicamente para conservar la
 integridad referencial y la trazabilidad (las FK usan `ON DELETE RESTRICT`).

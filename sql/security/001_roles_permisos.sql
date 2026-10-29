@@ -30,7 +30,7 @@ GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO meditec_admin;
 
 GRANT SELECT ON servicios_solicitantes, proveedores, tecnicos, instituciones, equipos_medicos,
     reportes, archivos_pdf, reporte_tecnico, reporte_proveedor,
-    usuario_proveedor, proveedor_institucion TO meditec_generador;
+    usuario_proveedor, proveedor_institucion, proveedor_tecnico TO meditec_generador;
 -- El generador solo registra instituciones, servicios y equipos; no edita catalogos,
 -- tecnicos ni empresas. Si corrige sus reportes y reemplaza el PDF.
 GRANT INSERT ON servicios_solicitantes, instituciones, equipos_medicos, reportes, archivos_pdf,

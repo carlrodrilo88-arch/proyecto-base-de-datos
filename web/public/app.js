@@ -64,9 +64,10 @@ const modules = {
     endpoint: "/api/tecnicos",
     id: "id_tecnico",
     nameLabel: "Nombre completo",
-    fields: ["nombre", "telefono", "correo", "especialidad"],
+    fields: ["nombre", "telefono", "correo", "especialidad", "id_proveedores"],
     required: ["nombre"],
-    columns: ["id_tecnico", "nombre", "telefono", "correo", "especialidad", "activo"],
+    columns: ["id_tecnico", "nombre", "empresas", "telefono", "correo", "especialidad", "activo"],
+    companyLegend: "Empresas para las que trabaja el tecnico",
   },
   instituciones: {
     title: "Instituciones",
@@ -421,6 +422,10 @@ recordForm.addEventListener("submit", async (event) => {
     showMessage("Seleccione al menos una empresa que atienda la institucion.");
     return;
   }
+  if (activeModule === "tecnicos" && payload.id_proveedores.length === 0) {
+    showMessage("Seleccione al menos una empresa para la que trabaje el tecnico.");
+    return;
+  }
   try {
     const saved = await api(id ? `${config.endpoint}/${id}` : config.endpoint, {
       method: id ? "PUT" : "POST",
@@ -613,11 +618,14 @@ async function loadReportCatalogs() {
   resetReportForm();
 }
 
-function technicianCheckboxes(selected = []) {
-  if (!reportCatalogs.tecnicos.length) {
-    return '<p class="hint">No hay tecnicos activos. El administrador los registra en el modulo Tecnicos.</p>';
+// Solo se ofrecen los tecnicos que trabajan para la empresa que emite el reporte.
+function technicianCheckboxes(company, selected = []) {
+  if (!company) return '<p class="hint">Seleccione primero la empresa.</p>';
+  const items = reportCatalogs.tecnicos.filter((item) => item.id_proveedores.includes(String(company)));
+  if (!items.length) {
+    return '<p class="hint">La empresa no tiene tecnicos activos. El administrador los asigna en el modulo Tecnicos.</p>';
   }
-  return reportCatalogs.tecnicos.map((item) => `
+  return items.map((item) => `
     <label class="check">
       <input type="checkbox" name="id_tecnicos" value="${escapeHtml(item.id)}" ${selected.includes(String(item.id)) ? "checked" : ""}>
       ${escapeHtml(item.nombre)}${item.especialidad ? ` <span class="muted">· ${escapeHtml(item.especialidad)}</span>` : ""}
@@ -647,9 +655,9 @@ function resetReportForm() {
   reportForm.elements.fecha_reporte.value = todayIso();
   reportForm.elements.titulo.dataset.auto = "1";
   newEquipmentPanel.classList.add("hidden");
-  document.querySelector("#technicianOptions").innerHTML = technicianCheckboxes();
   const companies = templateOptions.querySelectorAll('input[name="id_proveedor_plantilla"]');
   if (companies.length === 1) companies[0].checked = true;
+  fillTechnicians();
   fillInstitutions();
   updateTemplatePreview();
 }
@@ -786,7 +794,12 @@ function updateTemplatePreview() {
     <div class="sheet-signatures">${template.signatures.map((signature) => `<div><strong>${escapeHtml(signature)}</strong><span>NOMBRE, FIRMA Y SELLO</span></div>`).join("")}</div>`;
 }
 
+function fillTechnicians() {
+  document.querySelector("#technicianOptions").innerHTML = technicianCheckboxes(selectedCompanyId());
+}
+
 templateOptions.addEventListener("change", () => {
+  fillTechnicians();
   fillInstitutions();
   updateTemplatePreview();
 });
@@ -996,7 +1009,7 @@ async function openReportEdit(id) {
   const report = await api(`/api/reportes/${id}`);
   reportEditForm.reset();
   for (const field of reportEditFields) reportEditForm.elements[field].value = report[field] ?? "";
-  document.querySelector("#editTechnicianOptions").innerHTML = technicianCheckboxes(report.id_tecnicos);
+  document.querySelector("#editTechnicianOptions").innerHTML = technicianCheckboxes(report.id_proveedor_plantilla, report.id_tecnicos);
   document.querySelector("#reportEditCode").textContent = `${report.codigo_reporte} · ${report.descripcion_equipo ?? ""}`;
   reportEditDialog.showModal();
 }

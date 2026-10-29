@@ -96,6 +96,7 @@ psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/005_plantilla
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/006_constancia_equipos_autorizados.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/007_usuario_acceso.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/008_empresas_usuario_institucion.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/009_empresas_tecnico.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/dml/004_usuario_administrador.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/001_roles_permisos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/002_usuario_web.sql
@@ -131,6 +132,12 @@ sobre el nombre normalizado de la institucion. Si encuentra nombres repetidos se
 detiene y los lista para unificarlos antes. Despues de aplicarla, el
 administrador debe asignar empresas a los usuarios que no son administradores e
 instituciones a cada empresa; sin eso no ven datos.
+
+La novena migracion crea `proveedor_tecnico` (empresas para las que trabaja cada
+tecnico) y enlaza a cada tecnico con la empresa de los reportes en que ya
+participo. Los usuarios solo ven los tecnicos de sus empresas y un reporte solo
+admite tecnicos de la empresa que lo emite; el administrador debe asignar una
+empresa a los tecnicos que aun no tienen reportes.
 
 La septima migracion agrega `usuarios.usuario` para iniciar sesion con nombre de
 usuario o correo, y vuelve opcional el correo. Los usuarios existentes reciben
