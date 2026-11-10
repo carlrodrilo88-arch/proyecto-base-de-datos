@@ -7,9 +7,10 @@ const helmet = require("helmet");
 const { Pool } = require("pg");
 const { generateReportPdf } = require("./pdf-report");
 const { resolveReportTemplate } = require("./report-templates");
+const { loadReportDetail: loadReportDetailFrom } = require("./report-detail");
 const { deletePdf, getPdf, putPdf } = require("./storage");
-const { validateCompanyIds, validateEquipmentIds, validateTechnicianIds } = require("./report-batch");
-const { validatePassword, normalizeUsername } = require("./user-security");
+const { validateCompanyIds, validateEquipmentIds, validateEquipmentServices, validateTechnicianIds } = require("./report-batch");
+const { validatePassword, normalizeUsername, resolveTemporaryPassword } = require("./user-security");
 const {
   clearSessionCookie,
   createSessionCookie,
@@ -367,7 +368,7 @@ app.post("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandle
   const role = await pool.query("SELECT nombre FROM roles WHERE id_rol=$1 AND activo=TRUE", [rolId]);
   if (!role.rows[0]) throw invalidInput("El rol seleccionado no existe");
   const empresaIds = readUserCompanies(req.body, role.rows[0].nombre);
-  const password = validatePassword(req.body.password_temporal, "password_temporal");
+  const { password, generated } = resolveTemporaryPassword(req.body);
   const hash = await bcrypt.hash(password, 12);
   const created = await withTransaction(async (client) => {
     const result = await client.query(
@@ -381,7 +382,8 @@ app.post("/api/usuarios", requireAuth, requireRole("administrador"), asyncHandle
     }
     return result.rows[0];
   });
-  res.status(201).json(created);
+  // La contrasena generada solo se devuelve una vez; en la BD queda unicamente su hash.
+  res.status(201).json(generated ? { ...created, password_temporal: password } : created);
 }));
 
 app.put("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
@@ -398,9 +400,7 @@ app.put("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHan
   if (id === req.session.id_usuario && role.rows[0].nombre !== req.session.rol) {
     throw invalidInput("No puede cambiar su propio rol");
   }
-  const temporaryPassword = req.body.password_temporal
-    ? validatePassword(req.body.password_temporal, "password_temporal")
-    : null;
+  const { password: temporaryPassword, generated } = resolveTemporaryPassword(req.body, false);
   if (id === req.session.id_usuario && temporaryPassword) {
     throw invalidInput("Use la opcion Cambiar mi contrasena");
   }
@@ -422,21 +422,21 @@ app.put("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHan
     return result.rows[0];
   });
   if (!updated) return res.status(404).json({ error: "Usuario no encontrado" });
-  res.json(updated);
+  res.json(generated ? { ...updated, password_temporal: temporaryPassword } : updated);
 }));
 
 app.post("/api/usuarios/:id/restablecer-password", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) throw invalidInput("Usuario invalido");
   if (id === req.session.id_usuario) throw invalidInput("Use la opcion Cambiar mi contrasena");
-  const password = validatePassword(req.body.password_temporal, "password_temporal");
+  const { password, generated } = resolveTemporaryPassword(req.body);
   const hash = await bcrypt.hash(password, 12);
   const result = await pool.query(
     `UPDATE usuarios SET password_hash=$1,debe_cambiar_password=TRUE
      WHERE id_usuario=$2 RETURNING id_usuario`, [hash, id]
   );
   if (!result.rows[0]) return res.status(404).json({ error: "Usuario no encontrado" });
-  res.json({ ok: true });
+  res.json(generated ? { ok: true, password_temporal: password } : { ok: true });
 }));
 
 app.delete("/api/usuarios/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
@@ -545,7 +545,8 @@ app.post("/api/tecnicos", requireAuth, requireRole("administrador"), validationH
     }
     return result.rows[0];
   });
-  res.status(201).json(created);
+  // La contrasena generada solo se devuelve una vez; en la BD queda unicamente su hash.
+  res.status(201).json(generated ? { ...created, password_temporal: password } : created);
 })));
 
 app.put("/api/tecnicos/:id", requireAuth, requireRole("administrador"), validationHandler(asyncHandler(async (req, res) => {
@@ -959,13 +960,12 @@ async function assignTechnicians(client, reportId, technicianIds) {
 }
 
 app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
-  const servicioId = parseId(req.body.id_servicio_solicitante);
   const proveedorId = parseId(req.body.id_proveedor_plantilla);
-  const isBatch = Array.isArray(req.body.id_equipos_medicos);
-  const equipoMedicoIds = isBatch
-    ? validateEquipmentIds(req.body.id_equipos_medicos)
-    : validateEquipmentIds([req.body.id_equipo_medico]);
-  if (!servicioId) throw invalidInput("Servicio invalido");
+  const isBatch = req.body.equipos !== undefined || Array.isArray(req.body.id_equipos_medicos);
+  const equipos = validateEquipmentServices(req.body.equipos !== undefined ? req.body.equipos
+    : validateEquipmentIds(Array.isArray(req.body.id_equipos_medicos)
+      ? req.body.id_equipos_medicos : [req.body.id_equipo_medico])
+      .map((id) => ({ id_equipo_medico: id, id_servicio_solicitante: req.body.id_servicio_solicitante })));
   if (!proveedorId) throw invalidInput("Proveedor principal invalido");
   const scope = await companyScope(req);
   if (scope && !scope.includes(proveedorId)) throw invalidInput("Solo puede crear reportes de sus empresas");
@@ -983,7 +983,7 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
   try {
     await client.query("BEGIN");
     const created = [];
-    for (const equipoMedicoId of equipoMedicoIds) {
+    for (const { id_equipo_medico: equipoMedicoId, id_servicio_solicitante: servicioId } of equipos) {
       const result = await client.query(
          `INSERT INTO reportes (
             codigo_reporte, id_servicio_solicitante, id_equipo_medico, id_proveedor_plantilla,
@@ -1034,23 +1034,8 @@ app.post("/api/reportes", requireAuth, requireRole(...allowedEditors), asyncHand
   }
 }));
 
-// El creador del reporte firma como servicio tecnico en el PDF.
-async function loadReportDetail(id, db = pool) {
-  const result = await db.query(
-    `SELECT r.*, TO_CHAR(r.fecha_reporte, 'DD/MM/YYYY') AS fecha_reporte_texto,
-       ss.nombre AS servicio_solicitante, i.nombre AS institucion,
-       p.nombre AS proveedor, p.codigo_plantilla, p.logo_url, p.pie_pagina,
-       u.nombre AS creador
-     FROM reportes r
-     JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante=r.id_servicio_solicitante
-     JOIN instituciones i ON i.id_institucion=ss.id_institucion
-     JOIN proveedores p ON p.id_proveedor=r.id_proveedor_plantilla
-     JOIN usuarios u ON u.id_usuario=r.id_usuario_creador
-     WHERE r.id_reporte=$1`, [id]
-  );
-  const report = result.rows[0];
-  if (report) report.fecha_reporte = report.fecha_reporte_texto;
-  return report;
+function loadReportDetail(id, db = pool) {
+  return loadReportDetailFrom(id, db);
 }
 
 async function publishReport(id, userId) {

@@ -110,7 +110,7 @@ const modules = {
     endpoint: "/api/usuarios",
     id: "id_usuario",
     nameLabel: "Nombre completo",
-    fields: ["nombre", "usuario", "correo", "id_rol", "password_temporal", "id_proveedores"],
+    fields: ["nombre", "usuario", "correo", "id_rol", "password_temporal", "generar_password", "id_proveedores"],
     required: ["nombre", "usuario", "id_rol", "password_temporal"],
     columns: ["id_usuario", "nombre", "usuario", "correo", "rol", "empresas", "debe_cambiar_password", "activo"],
     companyLegend: "Empresas del usuario (el administrador ve todas)",
@@ -173,6 +173,7 @@ let activeModule = "reportes";
 let currentUser = null;
 let reportCatalogs = null;
 let selectedEquipmentIds = [];
+let equipmentServices = {};
 let catalogRows = [];
 
 function escapeHtml(value) {
@@ -337,6 +338,7 @@ function resetForm() {
   recordFormTitle.textContent = `Nuevo ${config.singular}`;
   const password = recordForm.elements.password_temporal;
   password.required = activeModule === "usuarios";
+  password.disabled = false;
   password.closest("label").firstChild.textContent = "Contrasena temporal";
   checkSingleCompany();
 }
@@ -416,6 +418,10 @@ recordForm.addEventListener("submit", async (event) => {
   const payload = { activo: config.activeValue ?? recordForm.elements.activo.checked };
   for (const field of config.fields) {
     if (field === "password_temporal" && !values.password_temporal) continue;
+    if (field === "generar_password") {
+      payload[field] = recordForm.elements.generar_password.checked;
+      continue;
+    }
     payload[field] = field === "id_proveedores" ? checkedValues(recordForm, field) : values[field];
   }
   if (activeModule === "instituciones" && payload.id_proveedores.length === 0) {
@@ -433,6 +439,11 @@ recordForm.addEventListener("submit", async (event) => {
     });
     resetForm();
     await loadRows();
+    if (saved?.password_temporal) {
+      showMessage(`Contrasena temporal generada para "${saved.usuario}": ${saved.password_temporal} `
+        + "(copiela ahora; no se volvera a mostrar).", "success");
+      return;
+    }
     showMessage(saved?.ya_existia
       ? `La institucion "${saved.nombre}" ya estaba registrada; se enlazo a la empresa seleccionada sin duplicarla.`
       : id ? "Cambios guardados." : "Registro creado.", "success");
@@ -457,7 +468,7 @@ tableBody.addEventListener("click", async (event) => {
         companyOptions.querySelectorAll('input[name="id_proveedores"]').forEach((input) => {
           input.checked = linked.includes(input.value);
         });
-      } else if (field !== "password_temporal") {
+      } else if (field !== "password_temporal" && field !== "generar_password") {
         recordForm.elements[field].value = row[field] ?? "";
       }
     }
@@ -490,6 +501,14 @@ tableBody.addEventListener("click", async (event) => {
 });
 
 clearButton.addEventListener("click", resetForm);
+
+// Al generar la contrasena en el servidor, el campo manual queda deshabilitado.
+recordForm.elements.generar_password.addEventListener("change", (event) => {
+  const password = recordForm.elements.password_temporal;
+  password.disabled = event.target.checked;
+  if (event.target.checked) password.value = "";
+  password.required = !event.target.checked && activeModule === "usuarios" && !recordForm.elements.id.value;
+});
 
 /* Reportes: institucion, servicio y equipos */
 
@@ -546,8 +565,18 @@ function renderSelectedEquipment() {
         <span class="equipment-name">${escapeHtml(item.nombre)}</span>
         <span class="equipment-meta">${escapeHtml(equipmentMeta(item))}</span>
       </div>
+      <label class="field equipment-service">Servicio solicitante
+        <select data-equipment-service="${escapeHtml(item.id)}" required>
+          ${selectOptions("Seleccione servicio", reportCatalogs.servicios
+            .filter((service) => String(service.id_institucion) === selectedInstitutionId())
+            .map((service) => [service.id, service.servicio || service.nombre]))}
+        </select>
+      </label>
       <button type="button" class="secondary small" data-remove-equipment="${escapeHtml(item.id)}">Quitar</button>
     </div>`).join("");
+  selectedEquipmentList.querySelectorAll('[data-equipment-service]').forEach((select) => {
+    select.value = equipmentServices[select.dataset.equipmentService] || "";
+  });
   updateReportSummary();
 }
 
@@ -575,6 +604,7 @@ function renderEquipmentSuggestions() {
 
 function resetEquipmentSelection() {
   selectedEquipmentIds = [];
+  equipmentServices = {};
   equipmentSearch.value = "";
   renderSelectedEquipment();
   renderEquipmentSuggestions();
@@ -582,14 +612,6 @@ function resetEquipmentSelection() {
 
 function fillServices() {
   const institution = selectedInstitutionId();
-  const select = reportForm.elements.id_servicio_solicitante;
-  const services = reportCatalogs.servicios.filter((item) => String(item.id_institucion) === institution);
-  const placeholder = !institution ? "Seleccione primero la institucion"
-    : services.length ? "Seleccione servicio" : "Sin servicios: registrelo en Servicios solicitantes";
-  select.innerHTML = `<option value="">${placeholder}</option>`
-    + services.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.servicio)}</option>`).join("");
-  if (services.length === 1) select.value = String(services[0].id);
-  select.disabled = !institution;
   equipmentSearch.disabled = !institution;
   newEquipmentToggle.disabled = !institution;
   equipmentSearch.placeholder = institution
@@ -710,7 +732,13 @@ selectedEquipmentList.addEventListener("click", (event) => {
   const id = event.target.dataset.removeEquipment;
   if (!id) return;
   selectedEquipmentIds = selectedEquipmentIds.filter((item) => item !== id);
+  delete equipmentServices[id];
   renderSelectedEquipment();
+});
+
+selectedEquipmentList.addEventListener("change", (event) => {
+  const id = event.target.dataset.equipmentService;
+  if (id) equipmentServices[id] = event.target.value;
 });
 
 function newEquipmentInputs() {
@@ -833,6 +861,7 @@ function reviewField(label, value) {
 }
 
 function openReportReview() {
+  if (!reportForm.reportValidity()) return;
   if (selectedEquipmentIds.length === 0) {
     showMessage("Agregue al menos un equipo al reporte.");
     equipmentSearch.focus();
@@ -853,7 +882,6 @@ function openReportReview() {
       <h3>Atención</h3>
       <div class="review-grid">
         ${reviewField("Institución", reportForm.elements.id_institucion_reporte.selectedOptions[0]?.textContent)}
-        ${reviewField("Servicio solicitante", reportForm.elements.id_servicio_solicitante.selectedOptions[0]?.textContent)}
         ${reviewField("Fecha", formatDate(values.fecha_reporte))}
         ${reviewField("Plantilla", selectedCompany?.nombre)}
         ${reviewField("Tipo de servicio", serviceTypeLabels[values.tipo_servicio])}
@@ -866,7 +894,9 @@ function openReportReview() {
     <section>
       <h3>${equipment.length} ${equipment.length === 1 ? "equipo" : "equipos"} · se publicará un PDF por equipo</h3>
       <div class="review-equipment">${equipment.map((item) => `
-        <div><strong>${escapeHtml(item.nombre)}</strong><span>${escapeHtml(equipmentMeta(item) || "Sin identificadores adicionales")}</span></div>`).join("")}</div>
+        <div><strong>${escapeHtml(item.nombre)}</strong><span>${escapeHtml(equipmentMeta(item) || "Sin identificadores adicionales")}</span>
+          ${reviewField("Servicio solicitante", reportCatalogs.servicios.find((service) => String(service.id) === equipmentServices[item.id])?.servicio
+            || reportCatalogs.servicios.find((service) => String(service.id) === equipmentServices[item.id])?.nombre)}</div>`).join("")}</div>
     </section>
     <section>
       <h3>Contenido técnico</h3>
@@ -895,7 +925,9 @@ reportReviewDialog.addEventListener("cancel", (event) => {
 reviewConfirm.addEventListener("click", async () => {
   const values = Object.fromEntries(new FormData(reportForm));
   delete values.id_institucion_reporte;
-  values.id_equipos_medicos = selectedEquipmentIds;
+  values.equipos = selectedEquipmentIds.map((id) => ({
+    id_equipo_medico: id, id_servicio_solicitante: equipmentServices[id],
+  }));
   values.id_tecnicos = checkedTechnicians(reportForm);
   values.publicar = true;
   reviewConfirm.disabled = true;

@@ -41,4 +41,13 @@ function validateCompanyIds(values, required = true, maximum = 20) {
   return parseUniqueIds(values, "Empresa", "No puede repetir la misma empresa");
 }
 
-module.exports = { validateCompanyIds, validateEquipmentIds, validateTechnicianIds };
+function validateEquipmentServices(values) {
+  if (!Array.isArray(values)) throw invalidIds("equipos debe ser una lista");
+  const ids = validateEquipmentIds(values.map((item) => item?.id_equipo_medico));
+  return values.map((item, index) => ({
+    id_equipo_medico: ids[index],
+    id_servicio_solicitante: parseUniqueIds([item?.id_servicio_solicitante], "Servicio solicitante", "")[0],
+  }));
+}
+
+module.exports = { validateCompanyIds, validateEquipmentIds, validateEquipmentServices, validateTechnicianIds };

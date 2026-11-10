@@ -250,6 +250,7 @@ nav {
 
 .content {
   display: grid;
+  min-width: 0;
   align-content: start;
   gap: 18px;
   width: 100%;
@@ -354,6 +355,16 @@ textarea {
   width: auto;
 }
 
+.check-wrap {
+  min-height: 42px;
+  font-weight: 400;
+  white-space: normal;
+}
+
+.check-wrap input {
+  flex: none;
+}
+
 /* Catalogos */
 
 .record-form.editing {
@@ -371,6 +382,8 @@ textarea {
 }
 
 .table-wrap {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -573,6 +586,15 @@ td.empty {
 .selected-equipment > div {
   display: grid;
   min-width: 0;
+}
+
+.equipment-service {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.selected-equipment {
+  flex-wrap: wrap;
 }
 
 .new-equipment {
@@ -1411,6 +1433,44 @@ tbody tr:hover {
     padding: 24px 16px;
   }
 
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar,
+  .content > div,
+  .panel,
+  .field {
+    min-width: 0;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  button,
+  .nav-button,
+  .technician-options .check {
+    min-height: 44px;
+  }
+
+  .step-number {
+    flex-shrink: 0;
+  }
+
+  .selected-equipment,
+  .equipment-suggestions,
+  .message,
+  .review-equipment {
+    overflow-wrap: anywhere;
+  }
+
   .login::before,
   .login::after,
   .login-intro {
@@ -1454,7 +1514,7 @@ tbody tr:hover {
   }
 
   .nav-button {
-    min-height: 38px;
+    min-height: 44px;
     padding: 8px 12px;
   }
 
@@ -1492,6 +1552,54 @@ tbody tr:hover {
 }
 
 @media (max-width: 520px) {
+  .content {
+    padding: 20px 12px 32px;
+  }
+
+  .sidebar {
+    gap: 8px;
+  }
+
+  .sidebar .brand {
+    gap: 8px;
+  }
+
+  .list-header {
+    flex-wrap: wrap;
+    margin-block: 16px 10px;
+  }
+
+  .list-header input {
+    flex-basis: 100%;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter-date {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .filter-date input {
+    max-width: none;
+  }
+
+  .selected-equipment {
+    flex-wrap: wrap;
+  }
+
+  .selected-equipment > div {
+    flex: 1 1 180px;
+  }
+
+  .template-sheet {
+    padding: 14px;
+    overflow-wrap: anywhere;
+  }
+
   .login-card {
     padding: 26px 20px;
   }
@@ -1687,6 +1795,8 @@ tbody tr:hover {
   .review-dialog {
     width: calc(100% - 16px);
     max-height: calc(100svh - 16px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   .review-header,
@@ -1700,7 +1810,21 @@ tbody tr:hover {
   }
 
   .review-content {
-    max-height: calc(100svh - 330px);
+    max-height: none;
+    overflow: visible;
+  }
+
+  .review-header {
+    gap: 12px;
+    padding-block: 18px;
+  }
+
+  .review-header h2 {
+    font-size: 23px;
+  }
+
+  .review-close {
+    flex-shrink: 0;
   }
 
   .review-grid {
