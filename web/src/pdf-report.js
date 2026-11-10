@@ -128,14 +128,14 @@ function section(doc, template, label, value, y, height) {
     });
 }
 
-// La primera firma (servicio tecnico) lleva impreso el nombre de quien creo el reporte.
+// La primera firma (servicio tecnico) lleva impreso el nombre de los tecnicos asignados al reporte.
 function drawSignatures(doc, template, report) {
   template.signatures.forEach((title, index) => {
     const x = LEFT + index * 179;
     const y = signatureTop(doc, template) + (template.staggerSignatures && index === 1 ? 14 : 0);
-    if (index === 0 && report.creador) {
+    if (index === 0 && report.tecnicos) {
       doc.font("Helvetica").fontSize(8).fillColor("#111111")
-        .text(report.creador, x, y - 12, { width: 169, align: "center", lineBreak: false, ellipsis: true });
+        .text(report.tecnicos, x, y - 12, { width: 169, align: "center", lineBreak: false, ellipsis: true });
     }
     doc.moveTo(x + 10, y).lineTo(x + 159, y).strokeColor(template.color).stroke();
     doc.font("Helvetica-Bold").fontSize(7).fillColor(template.color)

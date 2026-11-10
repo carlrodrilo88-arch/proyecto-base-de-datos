@@ -1,6 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { validatePassword, normalizeUsername } = require("./user-security");
+const {
+  validatePassword, normalizeUsername, generateTemporaryPassword, resolveTemporaryPassword,
+} = require("./user-security");
 
 test("acepta una contrasena segura", () => {
   assert.equal(validatePassword("Temporal2026"), "Temporal2026");
@@ -22,4 +24,20 @@ test("rechaza nombres de usuario invalidos", () => {
   assert.throws(() => normalizeUsername("carlos lopez"), /entre 3 y 60/);
   assert.throws(() => normalizeUsername("admin@meditec.local"), /entre 3 y 60/);
   assert.throws(() => normalizeUsername(undefined), /entre 3 y 60/);
+});
+
+test("genera contrasenas temporales validas y distintas", () => {
+  const first = generateTemporaryPassword();
+  const second = generateTemporaryPassword();
+  assert.match(first, /^[0-9a-f]{16}$/);
+  assert.equal(validatePassword(first), first);
+  assert.notEqual(first, second);
+});
+
+test("resuelve la contrasena temporal manual o generada", () => {
+  assert.equal(resolveTemporaryPassword({ generar_password: true }).generated, true);
+  assert.deepEqual(resolveTemporaryPassword({ password_temporal: "Temporal2026" }),
+    { password: "Temporal2026", generated: false });
+  assert.deepEqual(resolveTemporaryPassword({}, false), { password: null, generated: false });
+  assert.throws(() => resolveTemporaryPassword({}), /10 y 128/);
 });

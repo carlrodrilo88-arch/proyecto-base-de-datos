@@ -9,7 +9,8 @@
     "dev": "node --watch src/server.js",
     "test": "node --test",
     "db:migrate": "node src/migrate-report-templates.js",
-    "test:db": "node src/database-readiness.js"
+    "test:db": "node src/database-readiness.js",
+    "pdf:regenerar": "node src/regenerate-published-pdfs.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1145.0",
