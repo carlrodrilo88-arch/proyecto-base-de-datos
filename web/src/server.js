@@ -894,7 +894,7 @@ app.get("/api/reportes", requireAuth, asyncHandler(async (req, res) => {
        AND ($6::date IS NULL OR v.fecha_reporte >= $6)
        AND ($7::date IS NULL OR v.fecha_reporte <= $7)
        AND ($8::bigint[] IS NULL OR r.id_proveedor_plantilla = ANY($8::bigint[]))
-     ORDER BY v.fecha_reporte DESC, v.codigo_reporte`,
+      ORDER BY r.creado_en DESC, r.id_reporte DESC`,
     [codigo, estado, institucionId, servicioId, tecnicoId, desde, hasta, await companyScope(req)]
   );
   res.json(result.rows.map((row) => ({ ...row, puede_editar: canEditReport(req.session, row) })));

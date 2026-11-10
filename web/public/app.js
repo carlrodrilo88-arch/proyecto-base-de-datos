@@ -932,7 +932,8 @@ reviewConfirm.addEventListener("click", async () => {
   values.publicar = true;
   reviewConfirm.disabled = true;
   reviewConfirm.textContent = "Creando y publicando…";
-  const previewWindow = window.open("about:blank", "_blank");
+  // Abrir durante el clic permite al navegador autorizar las pestañas del lote.
+  const previewWindows = values.equipos.map(() => window.open("about:blank", "_blank"));
   try {
     const result = await api("/api/reportes", {
       method: "POST",
@@ -941,11 +942,27 @@ reviewConfirm.addEventListener("click", async () => {
     const reportes = result.reportes || [result];
     closeReportReview();
     resetReportForm();
-    await loadReports();
-    if (previewWindow && reportes[0]) previewWindow.location = `/api/reportes/${reportes[0].id_reporte}/archivo`;
+    let blocked = 0;
+    reportes.forEach((report, index) => {
+      const preview = previewWindows[index];
+      if (preview && !preview.closed) {
+        preview.location = `/api/reportes/${report.id_reporte}/archivo`;
+      } else {
+        blocked += 1;
+      }
+    });
+    const links = document.querySelector("#createdReportLinks");
+    links.classList.remove("hidden");
+    links.innerHTML = `<p class="hint">${blocked
+      ? "El navegador no abrió todos los PDF. Puede abrirlos aquí o permitir ventanas emergentes para este sitio."
+      : "PDF del último lote creado:"}</p><div class="form-actions">${reportes.map((report) =>
+      `<a href="/api/reportes/${encodeURIComponent(report.id_reporte)}/archivo" target="_blank" rel="noopener">${escapeHtml(report.codigo_reporte)}</a>`).join("")}</div>`;
     showMessage(`${reportes.length} reporte(s) publicado(s): ${reportes.map((item) => item.codigo_reporte).join(", ")}.`, "success");
+    await loadReports().catch((error) => {
+      showMessage(`Los PDF ya se publicaron, pero no se pudo actualizar el listado: ${error.message}`);
+    });
   } catch (error) {
-    if (previewWindow) previewWindow.close();
+    previewWindows.forEach((preview) => { if (preview && !preview.closed) preview.close(); });
     reviewWarnings.classList.remove("ok");
     reviewWarnings.innerHTML = `<h3>No se pudo publicar</h3><p>${escapeHtml(error.message)} Revise los datos o inténtelo nuevamente.</p>`;
     reviewWarnings.scrollIntoView({ block: "nearest" });
