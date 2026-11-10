@@ -545,8 +545,7 @@ app.post("/api/tecnicos", requireAuth, requireRole("administrador"), validationH
     }
     return result.rows[0];
   });
-  // La contrasena generada solo se devuelve una vez; en la BD queda unicamente su hash.
-  res.status(201).json(generated ? { ...created, password_temporal: password } : created);
+  res.status(201).json(created);
 })));
 
 app.put("/api/tecnicos/:id", requireAuth, requireRole("administrador"), validationHandler(asyncHandler(async (req, res) => {
