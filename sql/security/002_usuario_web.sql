@@ -24,7 +24,8 @@ GRANT USAGE ON SCHEMA public TO meditec_web;
 GRANT SELECT ON roles, usuarios, servicios_solicitantes, tecnicos,
     instituciones, proveedores, equipos_autorizados, equipos_medicos, reportes, archivos_pdf,
     reporte_proveedor, reporte_tecnico, vw_reportes_resumen,
-    usuario_proveedor, proveedor_institucion, proveedor_tecnico
+    usuario_proveedor, proveedor_institucion, proveedor_tecnico,
+    feriados, coordinaciones_trabajo, vw_coordinaciones_trabajo
 TO meditec_web;
 
 -- La bitacora solo se consulta desde la web; la escriben los triggers (SECURITY DEFINER).
@@ -43,6 +44,10 @@ GRANT INSERT ON reporte_proveedor TO meditec_web;
 GRANT INSERT, DELETE ON reporte_tecnico TO meditec_web;
 -- Enlaces de empresa: el administrador los reasigna, por eso se reemplazan completos.
 GRANT INSERT, DELETE ON usuario_proveedor, proveedor_institucion, proveedor_tecnico TO meditec_web;
+-- Coordinaciones: se recoordinan, amplian o finalizan (UPDATE); nunca se eliminan.
+GRANT INSERT, UPDATE ON coordinaciones_trabajo TO meditec_web;
+-- Los feriados no tienen historial propio; el administrador los corrige o elimina.
+GRANT INSERT, UPDATE, DELETE ON feriados TO meditec_web;
 GRANT USAGE, SELECT ON SEQUENCE
     servicios_solicitantes_id_servicio_solicitante_seq,
     usuarios_id_usuario_seq,
@@ -53,7 +58,14 @@ GRANT USAGE, SELECT ON SEQUENCE
     reportes_id_reporte_seq,
     archivos_pdf_id_archivo_pdf_seq,
     equipos_autorizados_id_equipo_autorizado_seq,
-    secuencia_codigo_reporte
+    secuencia_codigo_reporte,
+    coordinaciones_trabajo_id_coordinacion_seq,
+    feriados_id_feriado_seq
+TO meditec_web;
+
+-- Calculo de dias habiles; la vista de coordinaciones las invoca con los permisos de quien consulta.
+GRANT EXECUTE ON FUNCTION fecha_actual_guatemala(), es_dia_habil(DATE),
+    sumar_dias_habiles(DATE, INTEGER), dias_habiles_entre(DATE, DATE)
 TO meditec_web;
 
 GRANT EXECUTE ON FUNCTION generar_codigo_reporte() TO meditec_web;

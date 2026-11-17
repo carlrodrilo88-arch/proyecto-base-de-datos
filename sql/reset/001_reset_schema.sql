@@ -7,6 +7,13 @@
 
 BEGIN;
 
+DROP VIEW IF EXISTS vw_coordinaciones_trabajo CASCADE;
+DROP TABLE IF EXISTS coordinaciones_trabajo CASCADE;
+DROP TABLE IF EXISTS feriados CASCADE;
+DROP FUNCTION IF EXISTS dias_habiles_entre(DATE, DATE) CASCADE;
+DROP FUNCTION IF EXISTS sumar_dias_habiles(DATE, INTEGER) CASCADE;
+DROP FUNCTION IF EXISTS es_dia_habil(DATE) CASCADE;
+DROP FUNCTION IF EXISTS fecha_actual_guatemala() CASCADE;
 DROP VIEW IF EXISTS vw_reportes_resumen CASCADE;
 DROP TABLE IF EXISTS auditoria_eventos CASCADE;
 DROP TABLE IF EXISTS archivos_pdf CASCADE;

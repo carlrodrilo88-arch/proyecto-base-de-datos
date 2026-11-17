@@ -45,8 +45,15 @@ GRANT EXECUTE ON FUNCTION generar_codigo_reporte() TO meditec_generador;
 GRANT EXECUTE ON PROCEDURE publicar_reporte(BIGINT, BIGINT) TO meditec_generador;
 GRANT EXECUTE ON PROCEDURE reemplazar_pdf_reporte(BIGINT, TEXT, VARCHAR, BIGINT, BIGINT)
     TO meditec_generador;
+-- Coordinacion de trabajos: el generador crea, recoordina, amplia y finaliza.
+GRANT SELECT ON feriados, coordinaciones_trabajo, vw_coordinaciones_trabajo TO meditec_generador;
+GRANT INSERT, UPDATE ON coordinaciones_trabajo TO meditec_generador;
+GRANT EXECUTE ON FUNCTION fecha_actual_guatemala(), es_dia_habil(DATE),
+    sumar_dias_habiles(DATE, INTEGER), dias_habiles_entre(DATE, DATE)
+    TO meditec_generador, meditec_consulta;
 
 GRANT SELECT ON vw_reportes_resumen TO meditec_consulta;
+GRANT SELECT ON feriados, vw_coordinaciones_trabajo TO meditec_consulta;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO meditec_admin;

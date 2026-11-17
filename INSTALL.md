@@ -25,6 +25,7 @@ sql/dml/002_empresas_reportes.sql
 sql/dml/003_carga_excel_equipos.sql
 sql/dml/004_usuario_administrador.sql
 sql/views/001_reportes_resumen.sql
+sql/migrations/010_coordinacion_trabajos.sql
 sql/security/001_roles_permisos.sql
 sql/security/002_usuario_web.sql
 sql/queries/001_consultas_entrega3.sql
@@ -47,6 +48,7 @@ psql -U postgres -d meditec_reportes -f sql/dml/002_empresas_reportes.sql
 psql -U postgres -d meditec_reportes -f sql/dml/003_carga_excel_equipos.sql
 psql -U postgres -d meditec_reportes -f sql/dml/004_usuario_administrador.sql
 psql -U postgres -d meditec_reportes -f sql/views/001_reportes_resumen.sql
+psql -U postgres -d meditec_reportes -f sql/migrations/010_coordinacion_trabajos.sql
 psql -U postgres -d meditec_reportes -f sql/security/001_roles_permisos.sql
 psql -U postgres -d meditec_reportes -f sql/security/002_usuario_web.sql
 psql -U postgres -d meditec_reportes -f sql/queries/001_consultas_entrega3.sql
@@ -97,6 +99,7 @@ psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/006_constanci
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/007_usuario_acceso.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/008_empresas_usuario_institucion.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/009_empresas_tecnico.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/010_coordinacion_trabajos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/dml/004_usuario_administrador.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/001_roles_permisos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/002_usuario_web.sql
@@ -138,6 +141,15 @@ tecnico) y enlaza a cada tecnico con la empresa de los reportes en que ya
 participo. Los usuarios solo ven los tecnicos de sus empresas y un reporte solo
 admite tecnicos de la empresa que lo emite; el administrador debe asignar una
 empresa a los tecnicos que aun no tienen reportes.
+
+La decima migracion crea la coordinacion de trabajos: `feriados` (dias no
+habiles, con los feriados nacionales de Guatemala 2026 y 2027),
+`coordinaciones_trabajo` y la vista `vw_coordinaciones_trabajo`. Las funciones
+`es_dia_habil`, `sumar_dias_habiles` y `dias_habiles_entre` cuentan solo de lunes
+a viernes sin feriados; el dia de inicio es el dia 1 y un trigger calcula el
+ultimo dia al crear, recoordinar o ampliar. Despues de aplicarla se repiten los
+dos scripts de seguridad. Los feriados de anios siguientes los registra el
+administrador desde la web.
 
 La septima migracion agrega `usuarios.usuario` para iniciar sesion con nombre de
 usuario o correo, y vuelve opcional el correo. Los usuarios existentes reciben

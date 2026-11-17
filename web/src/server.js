@@ -10,6 +10,7 @@ const { resolveReportTemplate } = require("./report-templates");
 const { loadReportDetail: loadReportDetailFrom } = require("./report-detail");
 const { deletePdf, getPdf, putPdf } = require("./storage");
 const { REPORT_LIST_LIMIT, readNumeroBien } = require("./report-search");
+const { readBusinessDays, readCoordination, readDate, readHoliday } = require("./coordinaciones");
 const { validateCompanyIds, validateEquipmentIds, validateEquipmentServices, validateTechnicianIds } = require("./report-batch");
 const { validatePassword, normalizeUsername, resolveTemporaryPassword } = require("./user-security");
 const {
@@ -1180,6 +1181,160 @@ app.get("/api/reportes/:id/archivo", requireAuth, asyncHandler(async (req, res) 
   res.send(pdf);
 }));
 
+/* Feriados: dias que no cuentan como habiles en las coordinaciones de trabajo. */
+
+const holidayColumns = "id_feriado, TO_CHAR(fecha, 'YYYY-MM-DD') AS fecha, nombre";
+
+app.get("/api/feriados", requireAuth, asyncHandler(async (_req, res) => {
+  const result = await pool.query(`SELECT ${holidayColumns} FROM feriados ORDER BY fecha DESC`);
+  res.json(result.rows);
+}));
+
+app.post("/api/feriados", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const { fecha, nombre } = readHoliday(req.body);
+  const result = await pool.query(
+    `INSERT INTO feriados (fecha, nombre) VALUES ($1, $2) RETURNING ${holidayColumns}`, [fecha, nombre]
+  );
+  res.status(201).json(result.rows[0]);
+}));
+
+app.put("/api/feriados/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Feriado invalido");
+  const { fecha, nombre } = readHoliday(req.body);
+  const result = await pool.query(
+    `UPDATE feriados SET fecha=$1, nombre=$2 WHERE id_feriado=$3 RETURNING ${holidayColumns}`, [fecha, nombre, id]
+  );
+  if (!result.rows[0]) return res.status(404).json({ error: "Feriado no encontrado" });
+  res.json(result.rows[0]);
+}));
+
+// El ultimo dia de las coordinaciones ya guardadas no cambia; se recalcula al recoordinarlas o ampliarlas.
+app.delete("/api/feriados/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Feriado invalido");
+  const result = await pool.query("DELETE FROM feriados WHERE id_feriado=$1", [id]);
+  if (!result.rowCount) return res.status(404).json({ error: "Feriado no encontrado" });
+  res.status(204).send();
+}));
+
+/* Coordinacion de trabajos: plazo en dias habiles; cada usuario ve solo las de sus empresas. */
+
+const coordinationColumns = `id_coordinacion, id_proveedor, empresa, id_institucion, institucion,
+  nombre_mantenimiento, tipo_referencia, numero_referencia,
+  TO_CHAR(fecha_coordinacion, 'YYYY-MM-DD') AS fecha_coordinacion,
+  TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, dias_habiles,
+  TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin, estado,
+  TO_CHAR(fecha_finalizacion, 'YYYY-MM-DD') AS fecha_finalizacion, creador,
+  situacion, dias_restantes, dias_vencidos, finalizada_a_tiempo`;
+
+// El inicio debe ser habil para que el dia 1 del plazo sea un dia de trabajo.
+async function assertBusinessDay(fecha) {
+  const result = await pool.query("SELECT es_dia_habil($1::date) AS habil", [fecha]);
+  if (!result.rows[0].habil) {
+    throw invalidInput("La fecha de inicio cae en fin de semana o feriado; elija un dia habil");
+  }
+}
+
+// La empresa debe estar en el alcance del usuario y atender a la institucion elegida.
+async function assertCoordinationCompany(req, data) {
+  const scope = await companyScope(req);
+  if (scope && !scope.includes(data.id_proveedor)) throw invalidInput("La empresa no pertenece a sus empresas");
+  const result = await pool.query(
+    `SELECT 1 FROM proveedores p
+     JOIN proveedor_institucion pi ON pi.id_proveedor=p.id_proveedor
+     JOIN instituciones i ON i.id_institucion=pi.id_institucion
+     WHERE p.id_proveedor=$1 AND i.id_institucion=$2 AND p.activo=TRUE AND i.activo=TRUE`,
+    [data.id_proveedor, data.id_institucion]
+  );
+  if (!result.rows[0]) throw invalidInput("La institucion no es atendida por la empresa seleccionada");
+}
+
+async function findVisibleCoordination(req, id) {
+  const result = await pool.query(
+    `SELECT ${coordinationColumns} FROM vw_coordinaciones_trabajo
+     WHERE id_coordinacion=$1 AND ($2::bigint[] IS NULL OR id_proveedor = ANY($2::bigint[]))`,
+    [id, await companyScope(req)]
+  );
+  return result.rows[0] || null;
+}
+
+// Activos: primero el mas proximo a vencer. Finalizados: primero el ultimo que se finalizo.
+app.get("/api/coordinaciones", requireAuth, asyncHandler(async (req, res) => {
+  const estado = req.query.estado === "finalizado" ? "finalizado" : "activo";
+  const order = estado === "activo"
+    ? "fecha_fin ASC, fecha_inicio ASC, id_coordinacion ASC"
+    : "fecha_finalizacion DESC, id_coordinacion DESC";
+  const result = await pool.query(
+    `SELECT ${coordinationColumns} FROM vw_coordinaciones_trabajo
+     WHERE estado=$1 AND ($2::bigint[] IS NULL OR id_proveedor = ANY($2::bigint[]))
+     ORDER BY ${order}`,
+    [estado, await companyScope(req)]
+  );
+  res.json(result.rows);
+}));
+
+// Vista previa del ultimo dia mientras se llena el formulario; no guarda nada.
+app.get("/api/coordinaciones/calcular-fin", requireAuth, asyncHandler(async (req, res) => {
+  const fechaInicio = readDate(req.query.fecha_inicio, "Fecha de inicio");
+  const dias = readBusinessDays(req.query.dias_habiles);
+  await assertBusinessDay(fechaInicio);
+  const result = await pool.query(
+    "SELECT TO_CHAR(sumar_dias_habiles($1::date, $2), 'YYYY-MM-DD') AS fecha_fin", [fechaInicio, dias]
+  );
+  res.json(result.rows[0]);
+}));
+
+app.post("/api/coordinaciones", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
+  const data = readCoordination(req.body);
+  await assertCoordinationCompany(req, data);
+  await assertBusinessDay(data.fecha_inicio);
+  const id = await withUserTransaction(req.session.id_usuario, async (client) => {
+    const result = await client.query(
+      `INSERT INTO coordinaciones_trabajo (id_proveedor, id_institucion, nombre_mantenimiento, tipo_referencia,
+         numero_referencia, fecha_coordinacion, fecha_inicio, dias_habiles, fecha_fin, id_usuario_creador)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$7,$9) RETURNING id_coordinacion`,
+      [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.tipo_referencia,
+        data.numero_referencia, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, req.session.id_usuario]
+    );
+    return result.rows[0].id_coordinacion;
+  });
+  res.status(201).json(await findVisibleCoordination(req, id));
+}));
+
+// Recoordinar (otra fecha de inicio) o ampliar (mas dias habiles); el trigger recalcula el ultimo dia.
+app.put("/api/coordinaciones/:id", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Coordinacion invalida");
+  const current = await findVisibleCoordination(req, id);
+  if (!current) return res.status(404).json({ error: "Coordinacion no encontrada" });
+  if (current.estado !== "activo") throw invalidInput("Una coordinacion finalizada no se puede modificar");
+  const data = readCoordination(req.body);
+  await assertCoordinationCompany(req, data);
+  await assertBusinessDay(data.fecha_inicio);
+  await withUserTransaction(req.session.id_usuario, (client) => client.query(
+    `UPDATE coordinaciones_trabajo SET id_proveedor=$1, id_institucion=$2, nombre_mantenimiento=$3,
+       tipo_referencia=$4, numero_referencia=$5, fecha_coordinacion=$6, fecha_inicio=$7, dias_habiles=$8
+     WHERE id_coordinacion=$9 AND estado='activo'`,
+    [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.tipo_referencia,
+      data.numero_referencia, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, id]
+  ));
+  res.json(await findVisibleCoordination(req, id));
+}));
+
+app.post("/api/coordinaciones/:id/finalizar", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Coordinacion invalida");
+  const current = await findVisibleCoordination(req, id);
+  if (!current) return res.status(404).json({ error: "Coordinacion no encontrada" });
+  if (current.estado !== "activo") throw invalidInput("La coordinacion ya estaba finalizada");
+  await withUserTransaction(req.session.id_usuario, (client) => client.query(
+    `UPDATE coordinaciones_trabajo SET estado='finalizado', fecha_finalizacion=fecha_actual_guatemala()
+     WHERE id_coordinacion=$1 AND estado='activo'`, [id]
+  ));
+  res.json(await findVisibleCoordination(req, id));
+}));
+
 app.use((err, _req, res, _next) => {
   if (["42703", "42P01"].includes(err.code)) {
     return res.status(503).json({ error: "La base de datos requiere actualizacion. Aplique las migraciones pendientes segun INSTALL.md" });
@@ -1188,7 +1343,7 @@ app.use((err, _req, res, _next) => {
     return res.status(503).json({ error: "La cuenta de la base no tiene los permisos actuales. Ejecute sql/security/002_usuario_web.sql segun INSTALL.md" });
   }
   if (err.code === "23505") return res.status(409).json({ error: "El registro ya existe" });
-  if (["22007", "22008", "23502", "23503", "P0001"].includes(err.code)) {
+  if (["22007", "22008", "23502", "23503", "23514", "P0001"].includes(err.code)) {
     return res.status(400).json({ error: "La operacion no cumple las reglas de datos" });
   }
   if (Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {

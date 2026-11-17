@@ -1839,3 +1839,66 @@ tbody tr:hover {
     width: 100%;
   }
 }
+
+/* Coordinacion de trabajos */
+
+.badge.days {
+  text-transform: none;
+}
+
+.coordination-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.coordination-tabs button.tab {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.coordination-tabs button.tab:hover {
+  color: var(--primary);
+  background: transparent;
+  border-color: transparent;
+}
+
+.coordination-tabs button.tab.active {
+  color: var(--primary);
+  border-color: transparent;
+  border-bottom-color: var(--primary);
+}
+
+.coordination-end {
+  margin: 0;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 9px 11px;
+  border-radius: 7px;
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+  text-transform: capitalize;
+}
+
+.coordination-end.muted {
+  color: var(--muted);
+  background: var(--soft);
+  text-transform: none;
+}
+
+.coordination-end.error {
+  color: var(--danger);
+  background: var(--danger-soft);
+  text-transform: none;
+}

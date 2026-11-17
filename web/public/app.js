@@ -43,6 +43,14 @@ const reportReviewDialog = document.querySelector("#reportReviewDialog");
 const reviewWarnings = document.querySelector("#reviewWarnings");
 const reviewContent = document.querySelector("#reviewContent");
 const reviewConfirm = document.querySelector("#reviewConfirm");
+const coordinationPanel = document.querySelector("#coordinationPanel");
+const coordinationForm = document.querySelector("#coordinationForm");
+const coordinationFormTitle = document.querySelector("#coordinationFormTitle");
+const coordinationEnd = document.querySelector("#coordinationEnd");
+const coordinationSubmit = document.querySelector("#coordinationSubmit");
+const coordinationTableHead = document.querySelector("#coordinationTableHead");
+const coordinationTableBody = document.querySelector("#coordinationTableBody");
+const coordinationListHint = document.querySelector("#coordinationListHint");
 
 // fields: campos visibles del formulario; required: campos obligatorios al crear.
 const modules = {
@@ -130,6 +138,20 @@ const modules = {
     hardDelete: true,
     activeValue: false,
   },
+  // Dias no habiles para el plazo de las coordinaciones; no tienen historial propio.
+  feriados: {
+    title: "Feriados",
+    subtitle: "Días que no cuentan como hábiles en la coordinación de trabajos",
+    singular: "feriado",
+    endpoint: "/api/feriados",
+    id: "id_feriado",
+    nameLabel: "Nombre del feriado",
+    fields: ["fecha", "nombre"],
+    required: ["fecha", "nombre"],
+    columns: ["fecha", "nombre"],
+    fixedActive: true,
+    hardDelete: true,
+  },
   // Eventos registrados por los triggers; el modulo es de solo lectura.
   auditoria: {
     title: "Auditoría",
@@ -152,7 +174,7 @@ const headers = {
   proveedor_plantilla: "Plantilla", titulo: "Asunto", estado: "Estado",
   identificador_equipo: "Identificador", descripcion: "Descripción", tecnicos: "Técnicos",
   fecha_evento: "Fecha y hora", entidad: "Entidad", entidad_id: "ID", accion: "Acción", detalle: "Detalle",
-  empresas: "Empresas", creador: "Creado por",
+  empresas: "Empresas", creador: "Creado por", fecha: "Fecha",
 };
 
 // El generador solo registra instituciones, servicios y equipos; editar catalogos es del administrador.
@@ -206,6 +228,15 @@ function formatDate(value) {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : escapeHtml(value);
 }
 
+const weekdayNames = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+// Dia de la semana de una fecha AAAA-MM-DD, calculado en UTC para no correr el dia por la zona horaria.
+function weekdayName(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value ?? ""));
+  if (!match) return "";
+  return weekdayNames[new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))).getUTCDay()];
+}
+
 function renderCell(column, value) {
   if (column === "activo") {
     return value ? '<span class="badge ok">Activo</span>' : '<span class="badge off">Inactivo</span>';
@@ -215,6 +246,7 @@ function renderCell(column, value) {
   }
   if (column === "estado") return `<span class="badge ${escapeHtml(value)}">${escapeHtml(value)}</span>`;
   if (column === "fecha_reporte") return `<span class="code">${formatDate(value)}</span>`;
+  if (column === "fecha") return `<span class="code">${formatDate(value)}</span> <span class="muted">${weekdayName(value)}</span>`;
   if (column === "fecha_evento") return `<span class="code">${escapeHtml(new Date(value).toLocaleString("es-GT"))}</span>`;
   if (column === "codigo_reporte") return `<span class="code">${escapeHtml(value)}</span>`;
   return value === null || value === undefined || value === "" ? '<span class="muted">—</span>' : escapeHtml(value);
@@ -275,6 +307,8 @@ async function openModule(name) {
   try {
     if (name === "reportes") {
       await Promise.all([loadReportCatalogs(), loadReports()]);
+    } else if (name === "coordinaciones") {
+      await Promise.all([loadCoordinationCatalogs(), loadCoordinations()]);
     } else if (name !== "password") {
       await loadRows();
     }
@@ -286,9 +320,11 @@ async function openModule(name) {
 function configureModule() {
   const isReports = activeModule === "reportes";
   const isPassword = activeModule === "password";
-  catalogPanel.classList.toggle("hidden", isReports || isPassword);
+  const isCoordination = activeModule === "coordinaciones";
+  catalogPanel.classList.toggle("hidden", isReports || isPassword || isCoordination);
   reportsPanel.classList.toggle("hidden", !isReports);
   passwordPanel.classList.toggle("hidden", !isPassword);
+  coordinationPanel.classList.toggle("hidden", !isCoordination);
   document.querySelectorAll(".nav-button").forEach((button) => {
     const isActive = button.dataset.module === activeModule;
     button.classList.toggle("active", isActive);
@@ -307,6 +343,16 @@ function configureModule() {
       ? "Elija la empresa, la institucion y los equipos; el sistema genera un PDF por equipo"
       : "Consulta de reportes y documentos publicados";
     reportForm.classList.toggle("hidden", !canEdit);
+    return;
+  }
+  if (isCoordination) {
+    const canEdit = canEditCoordinations();
+    moduleTitle.textContent = "Coordinación de trabajos";
+    moduleSubtitle.textContent = canEdit
+      ? "Registre el mantenimiento coordinado; el sistema calcula el último día con días hábiles"
+      : "Consulta de mantenimientos coordinados y sus plazos";
+    coordinationForm.classList.toggle("hidden", !canEdit);
+    resetCoordinationForm();
     return;
   }
   const config = modules[activeModule];
@@ -1128,6 +1174,245 @@ passwordForm.addEventListener("submit", async (event) => {
     passwordForm.reset();
     await showApp(result.usuario);
     showMessage("Contrasena actualizada correctamente.", "success");
+  } catch (error) {
+    showMessage(error.message);
+  }
+});
+
+/* Coordinacion de trabajos */
+
+let coordinationCatalogs = null;
+let coordinationRows = { activo: [], finalizado: [] };
+let coordinationTab = "activo";
+let endPreviewTimer = null;
+let endPreviewRequest = 0;
+
+function canEditCoordinations() {
+  return ["administrador", "generador_reportes"].includes(currentUser?.rol);
+}
+
+function plural(count, singular, pluralText) {
+  return `${count} ${count === 1 ? singular : pluralText}`;
+}
+
+function fullDate(value) {
+  return value ? `${weekdayName(value)} ${formatDate(value)}` : "";
+}
+
+async function loadCoordinationCatalogs() {
+  coordinationCatalogs = await api("/api/reportes/catalogos");
+  const select = coordinationForm.elements.id_proveedor;
+  const companies = coordinationCatalogs.proveedores;
+  select.innerHTML = '<option value="">Seleccione empresa</option>' + companies
+    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.nombre)}</option>`).join("");
+  if (companies.length === 1 && !coordinationForm.elements.id.value) select.value = String(companies[0].id);
+  fillCoordinationInstitutions();
+}
+
+// Solo se ofrecen las instituciones que atiende la empresa elegida.
+function fillCoordinationInstitutions(selected = "") {
+  const company = coordinationForm.elements.id_proveedor.value;
+  const select = coordinationForm.elements.id_institucion;
+  const items = company && coordinationCatalogs
+    ? coordinationCatalogs.instituciones.filter((item) => item.id_proveedores.includes(company))
+    : [];
+  select.innerHTML = `<option value="">${company ? "Seleccione institucion" : "Seleccione primero la empresa"}</option>`
+    + items.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.nombre)}</option>`).join("");
+  select.disabled = !company;
+  if (selected) select.value = String(selected);
+}
+
+function resetCoordinationForm() {
+  coordinationForm.reset();
+  coordinationForm.elements.id.value = "";
+  coordinationForm.elements.fecha_coordinacion.value = todayIso();
+  coordinationForm.classList.remove("editing");
+  coordinationFormTitle.textContent = "Nueva coordinación";
+  coordinationSubmit.textContent = "Guardar coordinación";
+  const companies = coordinationCatalogs?.proveedores || [];
+  if (companies.length === 1) coordinationForm.elements.id_proveedor.value = String(companies[0].id);
+  fillCoordinationInstitutions();
+  updateEndPreview();
+}
+
+// Calcula el ultimo dia en la base (descuenta fines de semana y feriados) sin guardar nada.
+function updateEndPreview() {
+  clearTimeout(endPreviewTimer);
+  const inicio = coordinationForm.elements.fecha_inicio.value;
+  const dias = coordinationForm.elements.dias_habiles.value;
+  coordinationEnd.classList.remove("error");
+  if (!inicio || !dias) {
+    coordinationEnd.classList.add("muted");
+    coordinationEnd.textContent = "Indique el inicio y los días hábiles";
+    return;
+  }
+  const request = ++endPreviewRequest;
+  endPreviewTimer = setTimeout(async () => {
+    try {
+      const query = new URLSearchParams({ fecha_inicio: inicio, dias_habiles: dias });
+      const { fecha_fin: fechaFin } = await api(`/api/coordinaciones/calcular-fin?${query}`);
+      if (request !== endPreviewRequest) return;
+      coordinationEnd.classList.remove("muted");
+      coordinationEnd.innerHTML = `<strong>${fullDate(fechaFin)}</strong>`;
+    } catch (error) {
+      if (request !== endPreviewRequest) return;
+      coordinationEnd.classList.remove("muted");
+      coordinationEnd.classList.add("error");
+      coordinationEnd.textContent = error.message;
+    }
+  }, 250);
+}
+
+async function loadCoordinations() {
+  const [activos, finalizados] = await Promise.all([
+    api("/api/coordinaciones?estado=activo"),
+    api("/api/coordinaciones?estado=finalizado"),
+  ]);
+  coordinationRows = { activo: activos, finalizado: finalizados };
+  document.querySelector("#activeCoordinationCount").textContent = `(${activos.length})`;
+  document.querySelector("#finishedCoordinationCount").textContent = `(${finalizados.length})`;
+  renderCoordinations();
+}
+
+// Dias habiles que quedan, con color segun la urgencia.
+function remainingBadge(row) {
+  if (row.situacion === "vencida") {
+    return `<span class="badge days anulado">Vencida hace ${plural(row.dias_vencidos, "día hábil", "días hábiles")}</span>`;
+  }
+  const days = plural(row.dias_restantes, "día hábil", "días hábiles");
+  if (row.situacion === "por_iniciar") return `<span class="badge days">Por iniciar · ${days}</span>`;
+  return `<span class="badge days ${row.dias_restantes <= 2 ? "borrador" : "ok"}">${days}</span>`;
+}
+
+function maintenanceCell(row) {
+  return `<strong>${escapeHtml(row.nombre_mantenimiento)}</strong>
+    <br><span class="muted">${escapeHtml(row.empresa)} · ${escapeHtml(row.institucion)}</span>`;
+}
+
+function referenceCell(row) {
+  return `<span class="code">${escapeHtml(row.tipo_referencia)} ${escapeHtml(row.numero_referencia)}</span>`;
+}
+
+function dateCell(value) {
+  return value ? `<span class="code">${formatDate(value)}</span>` : '<span class="muted">—</span>';
+}
+
+function renderCoordinations() {
+  document.querySelectorAll("[data-coordination-tab]").forEach((tab) => {
+    const isActive = tab.dataset.coordinationTab === coordinationTab;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+  const rows = coordinationRows[coordinationTab];
+  const isActiveTab = coordinationTab === "activo";
+  const titles = isActiveTab
+    ? ["Mantenimiento", "Referencia", "Coordinado", "Inicio", "Último día", "Días", "Restantes", ""]
+    : ["Mantenimiento", "Referencia", "Inicio", "Último día", "Finalizado", "Cumplimiento", ""];
+  coordinationTableHead.innerHTML = titles.map((title) => `<th>${escapeHtml(title)}</th>`).join("");
+  coordinationListHint.textContent = isActiveTab
+    ? "Ordenados del más próximo a vencer al más lejano."
+    : "Ordenados del último finalizado al más antiguo.";
+  if (!rows.length) {
+    coordinationTableBody.innerHTML = `<tr><td class="empty" colspan="${titles.length}">${isActiveTab
+      ? "No hay mantenimientos activos." : "Aún no hay mantenimientos finalizados."}</td></tr>`;
+    return;
+  }
+  const canEdit = canEditCoordinations();
+  coordinationTableBody.innerHTML = rows.map((row) => isActiveTab
+    ? `<tr>
+        <td>${maintenanceCell(row)}</td>
+        <td>${referenceCell(row)}</td>
+        <td>${dateCell(row.fecha_coordinacion)}</td>
+        <td>${dateCell(row.fecha_inicio)}</td>
+        <td>${dateCell(row.fecha_fin)} <span class="muted">${weekdayName(row.fecha_fin)}</span></td>
+        <td>${escapeHtml(row.dias_habiles)}</td>
+        <td>${remainingBadge(row)}</td>
+        <td class="actions">${canEdit ? `
+          <button class="secondary small" data-edit-coordination="${escapeHtml(row.id_coordinacion)}">Editar</button>
+          <button class="small" data-finish-coordination="${escapeHtml(row.id_coordinacion)}">Finalizar</button>` : ""}
+        </td>
+      </tr>`
+    : `<tr>
+        <td>${maintenanceCell(row)}</td>
+        <td>${referenceCell(row)}</td>
+        <td>${dateCell(row.fecha_inicio)}</td>
+        <td>${dateCell(row.fecha_fin)}</td>
+        <td>${dateCell(row.fecha_finalizacion)}</td>
+        <td>${row.finalizada_a_tiempo
+          ? '<span class="badge days ok">A tiempo</span>'
+          : '<span class="badge days anulado">Con atraso</span>'}</td>
+        <td></td>
+      </tr>`).join("");
+}
+
+document.querySelectorAll("[data-coordination-tab]").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    coordinationTab = tab.dataset.coordinationTab;
+    renderCoordinations();
+  });
+});
+
+coordinationForm.elements.id_proveedor.addEventListener("change", () => fillCoordinationInstitutions());
+coordinationForm.elements.fecha_inicio.addEventListener("input", updateEndPreview);
+coordinationForm.elements.dias_habiles.addEventListener("input", updateEndPreview);
+document.querySelector("#coordinationCancel").addEventListener("click", resetCoordinationForm);
+
+coordinationForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(coordinationForm));
+  const id = values.id;
+  delete values.id;
+  coordinationSubmit.disabled = true;
+  try {
+    const saved = await api(id ? `/api/coordinaciones/${id}` : "/api/coordinaciones", {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify(values),
+    });
+    resetCoordinationForm();
+    coordinationTab = "activo";
+    await loadCoordinations();
+    showMessage(`${id ? "Cambios guardados" : "Coordinación guardada"}: "${saved.nombre_mantenimiento}". `
+      + `Último día de trabajo: ${fullDate(saved.fecha_fin)}.`, "success");
+  } catch (error) {
+    showMessage(error.message);
+  } finally {
+    coordinationSubmit.disabled = false;
+  }
+});
+
+coordinationTableBody.addEventListener("click", async (event) => {
+  const editId = event.target.dataset.editCoordination;
+  const finishId = event.target.dataset.finishCoordination;
+  const row = coordinationRows.activo.find((item) => String(item.id_coordinacion) === (editId || finishId));
+  if (!row) return;
+
+  if (editId) {
+    resetCoordinationForm();
+    const fields = coordinationForm.elements;
+    fields.id.value = row.id_coordinacion;
+    fields.id_proveedor.value = String(row.id_proveedor);
+    fillCoordinationInstitutions(row.id_institucion);
+    for (const name of ["nombre_mantenimiento", "tipo_referencia", "numero_referencia",
+      "fecha_coordinacion", "fecha_inicio", "dias_habiles"]) {
+      fields[name].value = row[name] ?? "";
+    }
+    coordinationFormTitle.textContent = `Recoordinar o ampliar: ${row.nombre_mantenimiento}`;
+    coordinationSubmit.textContent = "Guardar cambios";
+    coordinationForm.classList.add("editing");
+    updateEndPreview();
+    coordinationForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    fields.fecha_inicio.focus({ preventScroll: true });
+    return;
+  }
+
+  if (!window.confirm(`¿Finalizar "${row.nombre_mantenimiento}"? Pasará a la lista de finalizados y ya no se podrá modificar.`)) {
+    return;
+  }
+  try {
+    await api(`/api/coordinaciones/${finishId}/finalizar`, { method: "POST" });
+    if (coordinationForm.elements.id.value === finishId) resetCoordinationForm();
+    await loadCoordinations();
+    showMessage(`Mantenimiento "${row.nombre_mantenimiento}" finalizado.`, "success");
   } catch (error) {
     showMessage(error.message);
   }
