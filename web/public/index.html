@@ -267,10 +267,11 @@
 
             <section class="panel reports-list">
               <h3 class="panel-title">Reportes registrados</h3>
-              <p class="hint">Los últimos creados aparecen primero, incluso cuando tienen la misma fecha de servicio.</p>
+              <p class="hint">Se muestran los 50 reportes más recientes, los últimos creados primero. Use los filtros para encontrar reportes anteriores.</p>
               <div id="createdReportLinks" class="hidden" aria-live="polite"></div>
               <form id="reportFilterForm" class="filters">
                 <input name="codigo" type="search" placeholder="Buscar por codigo" aria-label="Buscar por codigo">
+                <input name="numero_bien" type="search" maxlength="100" placeholder="No. de bien exacto" aria-label="Buscar por numero de bien exacto">
                 <select name="id_institucion" aria-label="Institucion"></select>
                 <select name="id_servicio_solicitante" aria-label="Servicio solicitante"></select>
                 <select name="id_tecnico" aria-label="Tecnico"></select>

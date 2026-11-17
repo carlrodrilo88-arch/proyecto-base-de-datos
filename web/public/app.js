@@ -974,7 +974,7 @@ reviewConfirm.addEventListener("click", async () => {
 });
 
 function renderReports(rows) {
-  const columns = ["codigo_reporte", "fecha_reporte", "institucion", "servicio_solicitante", "proveedor_plantilla", "titulo", "creador", "estado"];
+  const columns = ["codigo_reporte", "fecha_reporte", "numero_bien", "institucion", "servicio_solicitante", "proveedor_plantilla", "titulo", "creador", "estado"];
   reportTableHead.innerHTML = headerCells(columns);
   if (!rows.length) {
     reportTableBody.innerHTML = `<tr><td class="empty" colspan="${columns.length + 1}">No se encontraron reportes.</td></tr>`;

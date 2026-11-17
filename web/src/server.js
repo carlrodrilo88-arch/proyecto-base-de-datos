@@ -9,6 +9,7 @@ const { generateReportPdf } = require("./pdf-report");
 const { resolveReportTemplate } = require("./report-templates");
 const { loadReportDetail: loadReportDetailFrom } = require("./report-detail");
 const { deletePdf, getPdf, putPdf } = require("./storage");
+const { REPORT_LIST_LIMIT, readNumeroBien } = require("./report-search");
 const { validateCompanyIds, validateEquipmentIds, validateEquipmentServices, validateTechnicianIds } = require("./report-batch");
 const { validatePassword, normalizeUsername, resolveTemporaryPassword } = require("./user-security");
 const {
@@ -879,8 +880,10 @@ app.get("/api/reportes", requireAuth, asyncHandler(async (req, res) => {
   const desde = optionalDate(req.query.fecha_desde, "Fecha inicial");
   const hasta = optionalDate(req.query.fecha_hasta, "Fecha final");
   if (desde && hasta && desde > hasta) throw invalidInput("La fecha inicial no puede ser posterior a la final");
+  const numeroBien = readNumeroBien(req.query.numero_bien);
+  // Solo se listan los REPORT_LIST_LIMIT mas recientes que cumplen los filtros.
   const result = await pool.query(
-    `SELECT v.*, r.id_usuario_creador, u.nombre AS creador FROM vw_reportes_resumen v
+    `SELECT v.*, r.id_usuario_creador, r.numero_bien, u.nombre AS creador FROM vw_reportes_resumen v
      JOIN reportes r ON r.id_reporte=v.id_reporte
      JOIN usuarios u ON u.id_usuario=r.id_usuario_creador
      JOIN servicios_solicitantes ss ON ss.id_servicio_solicitante=r.id_servicio_solicitante
@@ -893,8 +896,11 @@ app.get("/api/reportes", requireAuth, asyncHandler(async (req, res) => {
        AND ($6::date IS NULL OR v.fecha_reporte >= $6)
        AND ($7::date IS NULL OR v.fecha_reporte <= $7)
        AND ($8::bigint[] IS NULL OR r.id_proveedor_plantilla = ANY($8::bigint[]))
-      ORDER BY r.creado_en DESC, r.id_reporte DESC`,
-    [codigo, estado, institucionId, servicioId, tecnicoId, desde, hasta, await companyScope(req)]
+       AND ($9::text IS NULL OR r.numero_bien = $9)
+      ORDER BY r.creado_en DESC, r.id_reporte DESC
+      LIMIT $10`,
+    [codigo, estado, institucionId, servicioId, tecnicoId, desde, hasta, await companyScope(req),
+      numeroBien, REPORT_LIST_LIMIT]
   );
   res.json(result.rows.map((row) => ({ ...row, puede_editar: canEditReport(req.session, row) })));
 }));
