@@ -25,7 +25,8 @@ GRANT SELECT ON roles, usuarios, servicios_solicitantes, tecnicos,
     instituciones, proveedores, equipos_autorizados, equipos_medicos, reportes, archivos_pdf,
     reporte_proveedor, reporte_tecnico, vw_reportes_resumen,
     usuario_proveedor, proveedor_institucion, proveedor_tecnico,
-    feriados, coordinaciones_trabajo, vw_coordinaciones_trabajo
+    feriados, coordinaciones_trabajo, vw_coordinaciones_trabajo,
+    destinatarios, coordinacion_tecnico
 TO meditec_web;
 
 -- La bitacora solo se consulta desde la web; la escriben los triggers (SECURITY DEFINER).
@@ -46,6 +47,9 @@ GRANT INSERT, DELETE ON reporte_tecnico TO meditec_web;
 GRANT INSERT, DELETE ON usuario_proveedor, proveedor_institucion, proveedor_tecnico TO meditec_web;
 -- Coordinaciones: se recoordinan, amplian o finalizan (UPDATE); nunca se eliminan.
 GRANT INSERT, UPDATE ON coordinaciones_trabajo TO meditec_web;
+-- Destinatarios de la carta: se desactivan, no se eliminan. Los tecnicos asignados se reemplazan.
+GRANT INSERT, UPDATE ON destinatarios TO meditec_web;
+GRANT INSERT, DELETE ON coordinacion_tecnico TO meditec_web;
 -- Los feriados no tienen historial propio; el administrador los corrige o elimina.
 GRANT INSERT, UPDATE, DELETE ON feriados TO meditec_web;
 GRANT USAGE, SELECT ON SEQUENCE
@@ -60,7 +64,8 @@ GRANT USAGE, SELECT ON SEQUENCE
     equipos_autorizados_id_equipo_autorizado_seq,
     secuencia_codigo_reporte,
     coordinaciones_trabajo_id_coordinacion_seq,
-    feriados_id_feriado_seq
+    feriados_id_feriado_seq,
+    destinatarios_id_destinatario_seq
 TO meditec_web;
 
 -- Calculo de dias habiles; la vista de coordinaciones las invoca con los permisos de quien consulta.

@@ -1,8 +1,9 @@
 // Validacion de las coordinaciones de trabajo y de los feriados.
 // El calculo de dias habiles vive en PostgreSQL (sumar_dias_habiles) porque depende de la tabla feriados.
 
-const REFERENCE_TYPES = ["NOG", "OC"];
 const MAX_BUSINESS_DAYS = 365;
+// La carta de coordinacion tiene espacio para 10 tecnicos como maximo.
+const MAX_TECHNICIANS = 10;
 
 function invalid(message) {
   return Object.assign(new Error(message), { status: 400 });
@@ -43,15 +44,28 @@ function readBusinessDays(value) {
   return days;
 }
 
+// Tecnicos asignados: lista sin repetidos de 0 a 10 identificadores.
+function readTechnicianIds(value) {
+  if (value === undefined || value === null || value === "") return [];
+  const list = Array.isArray(value) ? value : [value];
+  const ids = [...new Set(list.map((item) => readId(item, "un tecnico valido")))];
+  if (ids.length > MAX_TECHNICIANS) throw invalid(`Asigne como maximo ${MAX_TECHNICIANS} tecnicos`);
+  return ids;
+}
+
+function readOptionalId(value, label) {
+  return value === undefined || value === null || value === "" ? null : readId(value, label);
+}
+
 function readCoordination(body = {}) {
-  const tipo = String(body.tipo_referencia ?? "").trim().toUpperCase();
-  if (!REFERENCE_TYPES.includes(tipo)) throw invalid("Seleccione el tipo de referencia: NOG u OC");
   const data = {
     id_proveedor: readId(body.id_proveedor, "la empresa"),
     id_institucion: readId(body.id_institucion, "la institucion"),
-    nombre_mantenimiento: readText(body.nombre_mantenimiento, "El nombre del mantenimiento", 180),
-    tipo_referencia: tipo,
-    numero_referencia: readText(body.numero_referencia, `El numero de ${tipo}`, 80),
+    nombre_mantenimiento: readText(body.nombre_mantenimiento, "La descripcion del mantenimiento", 600),
+    numero_oc: readText(body.numero_oc, "El numero de orden de compra (OC)", 80),
+    numero_nog: readText(body.numero_nog, "El numero de NOG", 80),
+    id_destinatario: readOptionalId(body.id_destinatario, "un destinatario valido"),
+    id_tecnicos: readTechnicianIds(body.id_tecnicos),
     fecha_coordinacion: readDate(body.fecha_coordinacion, "Fecha de coordinacion"),
     fecha_inicio: readDate(body.fecha_inicio, "Fecha de inicio"),
     dias_habiles: readBusinessDays(body.dias_habiles),
@@ -63,6 +77,22 @@ function readCoordination(body = {}) {
   return data;
 }
 
+// DPI guatemalteco: 13 digitos; se aceptan espacios o guiones al escribirlo.
+function readDpi(value) {
+  const text = String(value ?? "").replace(/[\s-]/g, "");
+  if (!text) return null;
+  if (!/^\d{13}$/.test(text)) throw invalid("El DPI debe tener 13 digitos");
+  return text;
+}
+
+function readRecipient(body = {}) {
+  return {
+    id_institucion: readId(body.id_institucion, "la institucion"),
+    nombre: readText(body.nombre, "El nombre del destinatario", 160),
+    cargo: readText(body.cargo, "El cargo del destinatario", 160),
+  };
+}
+
 function readHoliday(body = {}) {
   return {
     fecha: readDate(body.fecha, "Fecha del feriado"),
@@ -70,4 +100,7 @@ function readHoliday(body = {}) {
   };
 }
 
-module.exports = { MAX_BUSINESS_DAYS, readBusinessDays, readCoordination, readDate, readHoliday };
+module.exports = {
+  MAX_BUSINESS_DAYS, MAX_TECHNICIANS, readBusinessDays, readCoordination, readDate, readDpi, readHoliday,
+  readRecipient,
+};

@@ -10,7 +10,10 @@ const { resolveReportTemplate } = require("./report-templates");
 const { loadReportDetail: loadReportDetailFrom } = require("./report-detail");
 const { deletePdf, getPdf, putPdf } = require("./storage");
 const { REPORT_LIST_LIMIT, readNumeroBien } = require("./report-search");
-const { readBusinessDays, readCoordination, readDate, readHoliday } = require("./coordinaciones");
+const {
+  readBusinessDays, readCoordination, readDate, readDpi, readHoliday, readRecipient,
+} = require("./coordinaciones");
+const { generateCoordinationLetter } = require("./coordination-letter");
 const { validateCompanyIds, validateEquipmentIds, validateEquipmentServices, validateTechnicianIds } = require("./report-batch");
 const { validatePassword, normalizeUsername, resolveTemporaryPassword } = require("./user-security");
 const {
@@ -510,7 +513,7 @@ app.delete("/api/servicios-solicitantes/:id", requireAuth, requireRole("administ
 // Cada usuario ve solo los tecnicos de sus empresas; las empresas mostradas tambien se limitan a las suyas.
 app.get("/api/tecnicos", requireAuth, asyncHandler(async (req, res) => {
   const result = await pool.query(
-    `SELECT t.id_tecnico, t.nombre, t.telefono, t.correo, t.especialidad, t.activo,
+    `SELECT t.id_tecnico, t.nombre, t.dpi, t.telefono, t.correo, t.especialidad, t.activo,
        ARRAY(SELECT pt.id_proveedor::text FROM proveedor_tecnico pt
              WHERE pt.id_tecnico=t.id_tecnico
                AND ($1::bigint[] IS NULL OR pt.id_proveedor = ANY($1::bigint[]))) AS id_proveedores,
@@ -532,15 +535,16 @@ app.post("/api/tecnicos", requireAuth, requireRole("administrador"), validationH
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
   const especialidad = normalizeText(req.body.especialidad, "especialidad", 120);
+  const dpi = readDpi(req.body.dpi);
   const activo = normalizeActive(req.body.activo);
   const empresaIds = validateCompanyIds(req.body.id_proveedores);
 
   const created = await withTransaction(async (client) => {
     const result = await client.query(
-      `INSERT INTO tecnicos (nombre, telefono, correo, especialidad, activo)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id_tecnico, nombre, telefono, correo, especialidad, activo`,
-      [nombre, telefono, correo, especialidad, activo]
+      `INSERT INTO tecnicos (nombre, telefono, correo, especialidad, activo, dpi)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id_tecnico, nombre, dpi, telefono, correo, especialidad, activo`,
+      [nombre, telefono, correo, especialidad, activo, dpi]
     );
     if (!(await replaceCompanyLinks(client, "tecnico", result.rows[0].id_tecnico, empresaIds))) {
       throw invalidInput("Todas las empresas deben existir y estar activas");
@@ -557,15 +561,16 @@ app.put("/api/tecnicos/:id", requireAuth, requireRole("administrador"), validati
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
   const especialidad = normalizeText(req.body.especialidad, "especialidad", 120);
+  const dpi = readDpi(req.body.dpi);
   const activo = normalizeActive(req.body.activo);
   const empresaIds = validateCompanyIds(req.body.id_proveedores);
   const updated = await withTransaction(async (client) => {
     const result = await client.query(
       `UPDATE tecnicos
-       SET nombre = $1, telefono = $2, correo = $3, especialidad = $4, activo = $5
+       SET nombre = $1, telefono = $2, correo = $3, especialidad = $4, activo = $5, dpi = $7
        WHERE id_tecnico = $6
-       RETURNING id_tecnico, nombre, telefono, correo, especialidad, activo`,
-      [nombre, telefono, correo, especialidad, activo, id]
+       RETURNING id_tecnico, nombre, dpi, telefono, correo, especialidad, activo`,
+      [nombre, telefono, correo, especialidad, activo, id, dpi]
     );
     if (result.rows[0] && !(await replaceCompanyLinks(client, "tecnico", id, empresaIds))) {
       throw invalidInput("Todas las empresas deben existir y estar activas");
@@ -587,7 +592,7 @@ app.get("/api/instituciones", requireAuth, asyncHandler(async (req, res) => {
   const scope = await companyScope(req);
   // Las empresas de la institucion se limitan a las del usuario para no revelar otros clientes.
   const result = await pool.query(
-    `SELECT i.id_institucion, i.nombre, i.direccion, i.telefono, i.correo, i.activo,
+    `SELECT i.id_institucion, i.nombre, i.direccion, i.telefono, i.correo, i.linea_carta, i.activo,
        ARRAY(SELECT pi.id_proveedor::text FROM proveedor_institucion pi
              WHERE pi.id_institucion=i.id_institucion
                AND ($1::bigint[] IS NULL OR pi.id_proveedor = ANY($1::bigint[]))) AS id_proveedores,
@@ -619,6 +624,7 @@ app.post("/api/instituciones", requireAuth, requireRole(...allowedEditors), asyn
   const direccion = normalizeText(req.body.direccion, "direccion", 1000);
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
+  const lineaCarta = normalizeText(req.body.linea_carta, "linea_carta", 200);
   const activo = normalizeActive(req.body.activo);
   const empresaIds = readInstitutionCompanies(req.body, await companyScope(req));
   const { institution, created } = await withTransaction(async (client) => {
@@ -628,14 +634,14 @@ app.post("/api/instituciones", requireAuth, requireRole(...allowedEditors), asyn
     );
     if (valid.rows[0].total !== empresaIds.length) throw invalidInput("Todas las empresas deben existir y estar activas");
     const inserted = await client.query(
-      `INSERT INTO instituciones (nombre, direccion, telefono, correo, activo)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO instituciones (nombre, direccion, telefono, correo, activo, linea_carta)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT ((LOWER(BTRIM(nombre)))) DO NOTHING
-       RETURNING id_institucion, nombre, direccion, telefono, correo, activo`,
-      [nombre, direccion, telefono, correo, activo]
+       RETURNING id_institucion, nombre, direccion, telefono, correo, linea_carta, activo`,
+      [nombre, direccion, telefono, correo, activo, lineaCarta]
     );
     const row = inserted.rows[0] || (await client.query(
-      `SELECT id_institucion, nombre, direccion, telefono, correo, activo
+      `SELECT id_institucion, nombre, direccion, telefono, correo, linea_carta, activo
        FROM instituciones WHERE LOWER(BTRIM(nombre)) = LOWER(BTRIM($1))`, [nombre]
     )).rows[0];
     await client.query(
@@ -655,14 +661,15 @@ app.put("/api/instituciones/:id", requireAuth, requireRole("administrador"), asy
   const direccion = normalizeText(req.body.direccion, "direccion", 1000);
   const telefono = normalizeText(req.body.telefono, "telefono", 40);
   const correo = normalizeEmail(req.body.correo);
+  const lineaCarta = normalizeText(req.body.linea_carta, "linea_carta", 200);
   const activo = normalizeActive(req.body.activo);
   const empresaIds = readInstitutionCompanies(req.body, null);
   const updated = await withTransaction(async (client) => {
     const result = await client.query(
-      `UPDATE instituciones SET nombre=$1, direccion=$2, telefono=$3, correo=$4, activo=$5
+      `UPDATE instituciones SET nombre=$1, direccion=$2, telefono=$3, correo=$4, activo=$5, linea_carta=$7
        WHERE id_institucion=$6
-       RETURNING id_institucion, nombre, direccion, telefono, correo, activo`,
-      [nombre, direccion, telefono, correo, activo, id]
+       RETURNING id_institucion, nombre, direccion, telefono, correo, linea_carta, activo`,
+      [nombre, direccion, telefono, correo, activo, id, lineaCarta]
     );
     if (result.rows[0] && !(await replaceCompanyLinks(client, "institucion", id, empresaIds))) {
       throw invalidInput("Todas las empresas deben existir y estar activas");
@@ -815,7 +822,7 @@ app.get("/api/reportes/catalogos", requireAuth, asyncHandler(async (req, res) =>
       em.numero_bien, em.numero_serie, em.marca, em.modelo
       FROM equipos_medicos em
       WHERE em.activo=TRUE AND ${institutionInScope("em.id_institucion", "$1")} ORDER BY em.nombre`, [scope]),
-    pool.query(`SELECT t.id_tecnico AS id, t.nombre, t.especialidad,
+    pool.query(`SELECT t.id_tecnico AS id, t.nombre, t.especialidad, t.dpi,
       ARRAY(SELECT pt.id_proveedor::text FROM proveedor_tecnico pt WHERE pt.id_tecnico=t.id_tecnico
             AND ($1::bigint[] IS NULL OR pt.id_proveedor = ANY($1::bigint[]))) AS id_proveedores
       FROM tecnicos t
@@ -1221,7 +1228,9 @@ app.delete("/api/feriados/:id", requireAuth, requireRole("administrador"), async
 /* Coordinacion de trabajos: plazo en dias habiles; cada usuario ve solo las de sus empresas. */
 
 const coordinationColumns = `id_coordinacion, id_proveedor, empresa, id_institucion, institucion,
-  nombre_mantenimiento, tipo_referencia, numero_referencia,
+  nombre_mantenimiento, numero_oc, numero_nog, id_destinatario, destinatario, destinatario_cargo,
+  ARRAY(SELECT ct.id_tecnico::text FROM coordinacion_tecnico ct
+        WHERE ct.id_coordinacion = vw_coordinaciones_trabajo.id_coordinacion) AS id_tecnicos,
   TO_CHAR(fecha_coordinacion, 'YYYY-MM-DD') AS fecha_coordinacion,
   TO_CHAR(fecha_inicio, 'YYYY-MM-DD') AS fecha_inicio, dias_habiles,
   TO_CHAR(fecha_fin, 'YYYY-MM-DD') AS fecha_fin, estado,
@@ -1248,6 +1257,35 @@ async function assertCoordinationCompany(req, data) {
     [data.id_proveedor, data.id_institucion]
   );
   if (!result.rows[0]) throw invalidInput("La institucion no es atendida por la empresa seleccionada");
+  if (data.id_destinatario) {
+    const recipient = await pool.query(
+      "SELECT 1 FROM destinatarios WHERE id_destinatario=$1 AND id_institucion=$2 AND activo=TRUE",
+      [data.id_destinatario, data.id_institucion]
+    );
+    if (!recipient.rows[0]) throw invalidInput("El destinatario no pertenece a la institucion seleccionada");
+  }
+  if (data.id_tecnicos.length) {
+    const technicians = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM tecnicos t
+       JOIN proveedor_tecnico pt ON pt.id_tecnico=t.id_tecnico AND pt.id_proveedor=$2
+       WHERE t.id_tecnico = ANY($1::bigint[]) AND t.activo=TRUE`,
+      [data.id_tecnicos, data.id_proveedor]
+    );
+    if (technicians.rows[0].total !== data.id_tecnicos.length) {
+      throw invalidInput("Todos los tecnicos deben estar activos y trabajar para la empresa seleccionada");
+    }
+  }
+}
+
+// Personal de la carta: la lista se reemplaza completa en cada guardado.
+async function replaceCoordinationTechnicians(client, id, technicianIds) {
+  await client.query("DELETE FROM coordinacion_tecnico WHERE id_coordinacion=$1", [id]);
+  if (technicianIds.length) {
+    await client.query(
+      "INSERT INTO coordinacion_tecnico (id_coordinacion, id_tecnico) SELECT $1, UNNEST($2::bigint[])",
+      [id, technicianIds]
+    );
+  }
 }
 
 async function findVisibleCoordination(req, id) {
@@ -1291,13 +1329,16 @@ app.post("/api/coordinaciones", requireAuth, requireRole(...allowedEditors), asy
   await assertBusinessDay(data.fecha_inicio);
   const id = await withUserTransaction(req.session.id_usuario, async (client) => {
     const result = await client.query(
-      `INSERT INTO coordinaciones_trabajo (id_proveedor, id_institucion, nombre_mantenimiento, tipo_referencia,
-         numero_referencia, fecha_coordinacion, fecha_inicio, dias_habiles, fecha_fin, id_usuario_creador)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$7,$9) RETURNING id_coordinacion`,
-      [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.tipo_referencia,
-        data.numero_referencia, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, req.session.id_usuario]
+      `INSERT INTO coordinaciones_trabajo (id_proveedor, id_institucion, nombre_mantenimiento, numero_oc,
+         numero_nog, fecha_coordinacion, fecha_inicio, dias_habiles, fecha_fin, id_usuario_creador, id_destinatario)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$7,$9,$10) RETURNING id_coordinacion`,
+      [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.numero_oc,
+        data.numero_nog, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, req.session.id_usuario,
+        data.id_destinatario]
     );
-    return result.rows[0].id_coordinacion;
+    const newId = result.rows[0].id_coordinacion;
+    await replaceCoordinationTechnicians(client, newId, data.id_tecnicos);
+    return newId;
   });
   res.status(201).json(await findVisibleCoordination(req, id));
 }));
@@ -1312,13 +1353,16 @@ app.put("/api/coordinaciones/:id", requireAuth, requireRole(...allowedEditors), 
   const data = readCoordination(req.body);
   await assertCoordinationCompany(req, data);
   await assertBusinessDay(data.fecha_inicio);
-  await withUserTransaction(req.session.id_usuario, (client) => client.query(
-    `UPDATE coordinaciones_trabajo SET id_proveedor=$1, id_institucion=$2, nombre_mantenimiento=$3,
-       tipo_referencia=$4, numero_referencia=$5, fecha_coordinacion=$6, fecha_inicio=$7, dias_habiles=$8
-     WHERE id_coordinacion=$9 AND estado='activo'`,
-    [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.tipo_referencia,
-      data.numero_referencia, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, id]
-  ));
+  await withUserTransaction(req.session.id_usuario, async (client) => {
+    await client.query(
+      `UPDATE coordinaciones_trabajo SET id_proveedor=$1, id_institucion=$2, nombre_mantenimiento=$3,
+         numero_oc=$4, numero_nog=$5, fecha_coordinacion=$6, fecha_inicio=$7, dias_habiles=$8, id_destinatario=$10
+       WHERE id_coordinacion=$9 AND estado='activo'`,
+      [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.numero_oc,
+        data.numero_nog, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, id, data.id_destinatario]
+    );
+    await replaceCoordinationTechnicians(client, id, data.id_tecnicos);
+  });
   res.json(await findVisibleCoordination(req, id));
 }));
 
@@ -1333,6 +1377,89 @@ app.post("/api/coordinaciones/:id/finalizar", requireAuth, requireRole(...allowe
      WHERE id_coordinacion=$1 AND estado='activo'`, [id]
   ));
   res.json(await findVisibleCoordination(req, id));
+}));
+
+// Carta de coordinacion: se genera al momento con los datos vigentes; no se guarda el PDF.
+app.get("/api/coordinaciones/:id/carta", requireAuth, asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Coordinacion invalida");
+  const coordination = await findVisibleCoordination(req, id);
+  if (!coordination) return res.status(404).json({ error: "Coordinacion no encontrada" });
+  const [company, institution, technicians] = await Promise.all([
+    pool.query("SELECT nombre, nit, direccion, telefono, correo, codigo_plantilla FROM proveedores WHERE id_proveedor=$1",
+      [coordination.id_proveedor]),
+    pool.query("SELECT nombre, linea_carta FROM instituciones WHERE id_institucion=$1", [coordination.id_institucion]),
+    pool.query(
+      `SELECT t.nombre, t.dpi FROM coordinacion_tecnico ct JOIN tecnicos t ON t.id_tecnico=ct.id_tecnico
+       WHERE ct.id_coordinacion=$1 ORDER BY t.nombre`, [id]
+    ),
+  ]);
+  const empresa = company.rows[0];
+  const pdf = await generateCoordinationLetter({
+    plantilla: empresa.codigo_plantilla,
+    empresa,
+    institucion: institution.rows[0].nombre,
+    linea_institucion: institution.rows[0].linea_carta,
+    destinatario: coordination.destinatario,
+    destinatario_cargo: coordination.destinatario_cargo,
+    descripcion: coordination.nombre_mantenimiento,
+    numero_oc: coordination.numero_oc,
+    numero_nog: coordination.numero_nog,
+    fecha_coordinacion: coordination.fecha_coordinacion,
+    fecha_inicio: coordination.fecha_inicio,
+    fecha_fin: coordination.fecha_fin,
+    dias_habiles: coordination.dias_habiles,
+    tecnicos: technicians.rows,
+  });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Content-Disposition", `inline; filename=carta-coordinacion-${id}.pdf`);
+  res.send(pdf);
+}));
+
+/* Destinatarios de la carta: persona y cargo a quien se dirige, reutilizables por institucion. */
+
+app.get("/api/destinatarios", requireAuth, asyncHandler(async (req, res) => {
+  const result = await pool.query(
+    `SELECT d.id_destinatario, d.id_institucion, i.nombre AS institucion, d.nombre, d.cargo, d.activo
+     FROM destinatarios d JOIN instituciones i ON i.id_institucion=d.id_institucion
+     WHERE ${institutionInScope("i.id_institucion", "$1")}
+     ORDER BY i.nombre, d.nombre`,
+    [await companyScope(req)]
+  );
+  res.json(result.rows);
+}));
+
+// Como los servicios, el generador los registra en sus instituciones; solo el administrador los edita.
+app.post("/api/destinatarios", requireAuth, requireRole(...allowedEditors), asyncHandler(async (req, res) => {
+  const data = readRecipient(req.body);
+  await assertInstitutionInScope(await companyScope(req), data.id_institucion);
+  const result = await pool.query(
+    `INSERT INTO destinatarios (id_institucion, nombre, cargo, activo) VALUES ($1, $2, $3, $4)
+     RETURNING id_destinatario, id_institucion, nombre, cargo, activo`,
+    [data.id_institucion, data.nombre, data.cargo, normalizeActive(req.body.activo)]
+  );
+  res.status(201).json(result.rows[0]);
+}));
+
+app.put("/api/destinatarios/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) throw invalidInput("Identificador invalido");
+  const data = readRecipient(req.body);
+  const result = await pool.query(
+    `UPDATE destinatarios SET id_institucion=$1, nombre=$2, cargo=$3, activo=$4 WHERE id_destinatario=$5
+     RETURNING id_destinatario, id_institucion, nombre, cargo, activo`,
+    [data.id_institucion, data.nombre, data.cargo, normalizeActive(req.body.activo), id]
+  );
+  if (!result.rows[0]) return res.status(404).json({ error: "Registro no encontrado" });
+  res.json(result.rows[0]);
+}));
+
+app.delete("/api/destinatarios/:id", requireAuth, requireRole("administrador"), asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.status(400).json({ error: "Identificador invalido" });
+  await pool.query("UPDATE destinatarios SET activo=FALSE WHERE id_destinatario=$1", [id]);
+  res.status(204).send();
 }));
 
 app.use((err, _req, res, _next) => {

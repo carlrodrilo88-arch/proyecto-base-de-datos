@@ -11,3 +11,6 @@ npm-debug.log*
 /skills-lock.json
 /*.png
 /*.pdf
+
+# Configuracion local de Claude Code
+.claude/settings.local.json

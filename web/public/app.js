@@ -72,9 +72,9 @@ const modules = {
     endpoint: "/api/tecnicos",
     id: "id_tecnico",
     nameLabel: "Nombre completo",
-    fields: ["nombre", "telefono", "correo", "especialidad", "id_proveedores"],
+    fields: ["nombre", "dpi", "telefono", "correo", "especialidad", "id_proveedores"],
     required: ["nombre"],
-    columns: ["id_tecnico", "nombre", "empresas", "telefono", "correo", "especialidad", "activo"],
+    columns: ["id_tecnico", "nombre", "dpi", "empresas", "telefono", "correo", "especialidad", "activo"],
     companyLegend: "Empresas para las que trabaja el tecnico",
   },
   instituciones: {
@@ -84,10 +84,22 @@ const modules = {
     endpoint: "/api/instituciones",
     id: "id_institucion",
     nameLabel: "Nombre de la institucion",
-    fields: ["nombre", "telefono", "correo", "direccion", "id_proveedores"],
+    fields: ["nombre", "telefono", "correo", "direccion", "linea_carta", "id_proveedores"],
     required: ["nombre"],
     columns: ["id_institucion", "nombre", "empresas", "telefono", "correo", "direccion", "activo"],
     companyLegend: "Empresas que atienden la institucion",
+  },
+  // Persona a quien se dirige la carta de coordinacion; se elige al coordinar un mantenimiento.
+  destinatarios: {
+    title: "Destinatarios de cartas",
+    subtitle: "Nombre y cargo de la persona a quien se dirige la carta de coordinación",
+    singular: "destinatario",
+    endpoint: "/api/destinatarios",
+    id: "id_destinatario",
+    nameLabel: "Nombre con título (Ej. Ing. Jahen Gildardo Figueroa Mérida)",
+    fields: ["nombre", "cargo", "id_institucion"],
+    required: ["nombre", "cargo", "id_institucion"],
+    columns: ["nombre", "cargo", "institucion", "activo"],
   },
   proveedores: {
     title: "Empresas y proveedores",
@@ -174,11 +186,11 @@ const headers = {
   proveedor_plantilla: "Plantilla", titulo: "Asunto", estado: "Estado",
   identificador_equipo: "Identificador", descripcion: "Descripción", tecnicos: "Técnicos",
   fecha_evento: "Fecha y hora", entidad: "Entidad", entidad_id: "ID", accion: "Acción", detalle: "Detalle",
-  empresas: "Empresas", creador: "Creado por", fecha: "Fecha",
+  empresas: "Empresas", creador: "Creado por", fecha: "Fecha", dpi: "DPI", cargo: "Cargo",
 };
 
 // El generador solo registra instituciones, servicios y equipos; editar catalogos es del administrador.
-const generatorCreates = ["instituciones", "servicios", "equipos_medicos"];
+const generatorCreates = ["instituciones", "servicios", "equipos_medicos", "destinatarios"];
 
 function canCreateRecords(config) {
   if (config.readOnly) return false;
@@ -249,7 +261,14 @@ function renderCell(column, value) {
   if (column === "fecha") return `<span class="code">${formatDate(value)}</span> <span class="muted">${weekdayName(value)}</span>`;
   if (column === "fecha_evento") return `<span class="code">${escapeHtml(new Date(value).toLocaleString("es-GT"))}</span>`;
   if (column === "codigo_reporte") return `<span class="code">${escapeHtml(value)}</span>`;
+  if (column === "dpi" && value) return `<span class="code">${escapeHtml(formatDpi(value))}</span>`;
   return value === null || value === undefined || value === "" ? '<span class="muted">—</span>' : escapeHtml(value);
+}
+
+// "2566314090901" -> "2566 31409 0901", como se imprime en la carta.
+function formatDpi(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length === 13 ? `${digits.slice(0, 4)} ${digits.slice(4, 9)} ${digits.slice(9)}` : String(value || "");
 }
 
 function headerCells(columns) {
@@ -1181,6 +1200,24 @@ passwordForm.addEventListener("submit", async (event) => {
 
 /* Coordinacion de trabajos */
 
+async function openCoordinationLetter(id) {
+  const tab = window.open("", "_blank");
+  try {
+    const response = await fetch(`/api/coordinaciones/${id}/carta`, { credentials: "same-origin" });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || "No se pudo generar la carta");
+    }
+    const url = URL.createObjectURL(await response.blob());
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (error) {
+    if (tab) tab.close();
+    showMessage(error.message);
+  }
+}
+
 let coordinationCatalogs = null;
 let coordinationRows = { activo: [], finalizado: [] };
 let coordinationTab = "activo";
@@ -1200,7 +1237,8 @@ function fullDate(value) {
 }
 
 async function loadCoordinationCatalogs() {
-  coordinationCatalogs = await api("/api/reportes/catalogos");
+  const [catalogs, recipients] = await Promise.all([api("/api/reportes/catalogos"), api("/api/destinatarios")]);
+  coordinationCatalogs = { ...catalogs, destinatarios: recipients.filter((item) => item.activo) };
   const select = coordinationForm.elements.id_proveedor;
   const companies = coordinationCatalogs.proveedores;
   select.innerHTML = '<option value="">Seleccione empresa</option>' + companies
@@ -1220,6 +1258,89 @@ function fillCoordinationInstitutions(selected = "") {
     + items.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.nombre)}</option>`).join("");
   select.disabled = !company;
   if (selected) select.value = String(selected);
+  fillCoordinationRecipients();
+  fillCoordinationTechnicians();
+}
+
+// Destinatarios registrados para la institucion elegida.
+function fillCoordinationRecipients(selected = "") {
+  const institution = coordinationForm.elements.id_institucion.value;
+  const select = coordinationForm.elements.id_destinatario;
+  const items = institution && coordinationCatalogs
+    ? coordinationCatalogs.destinatarios.filter((item) => String(item.id_institucion) === institution)
+    : [];
+  select.innerHTML = `<option value="">${!institution ? "Seleccione primero la institucion"
+    : items.length ? "Sin destinatario" : "Sin destinatarios registrados"}</option>`
+    + items.map((item) => `<option value="${escapeHtml(item.id_destinatario)}">${escapeHtml(item.nombre)} · ${escapeHtml(item.cargo)}</option>`).join("");
+  select.disabled = !institution;
+  if (selected) select.value = String(selected);
+  document.querySelector("#newRecipientToggle").disabled = !institution;
+  closeNewRecipient();
+}
+
+function newRecipientInputs() {
+  return Object.fromEntries([...document.querySelectorAll("#newRecipientPanel [data-recipient]")]
+    .map((input) => [input.dataset.recipient, input]));
+}
+
+function closeNewRecipient() {
+  Object.values(newRecipientInputs()).forEach((input) => { input.value = ""; });
+  document.querySelector("#newRecipientPanel").classList.add("hidden");
+}
+
+// Registra el destinatario en la institucion elegida y lo deja seleccionado en la coordinacion.
+async function saveNewRecipient() {
+  const inputs = newRecipientInputs();
+  const data = { nombre: inputs.nombre.value.trim(), cargo: inputs.cargo.value.trim() };
+  const missing = ["nombre", "cargo"].find((key) => !data[key]);
+  if (missing) {
+    showMessage("Indique el nombre y el cargo del destinatario.");
+    inputs[missing].focus();
+    return;
+  }
+  const institution = coordinationForm.elements.id_institucion.value;
+  const button = document.querySelector("#newRecipientSave");
+  button.disabled = true;
+  try {
+    const row = await api("/api/destinatarios", {
+      method: "POST",
+      body: JSON.stringify({ ...data, id_institucion: institution, activo: true }),
+    });
+    coordinationCatalogs.destinatarios.push(row);
+    fillCoordinationRecipients(row.id_destinatario);
+    showMessage(`Destinatario "${row.nombre}" registrado y seleccionado.`, "success");
+  } catch (error) {
+    showMessage(error.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// Tecnicos de la empresa elegida; la carta imprime nombre y DPI (maximo 10).
+function fillCoordinationTechnicians(selected = checkedValues(coordinationForm, "id_tecnicos")) {
+  const company = coordinationForm.elements.id_proveedor.value;
+  const box = document.querySelector("#coordinationTechnicians");
+  const items = company && coordinationCatalogs
+    ? coordinationCatalogs.tecnicos.filter((item) => item.id_proveedores.includes(company))
+    : [];
+  box.innerHTML = !company ? '<p class="hint">Seleccione primero la empresa.</p>'
+    : !items.length ? '<p class="hint">La empresa no tiene tecnicos activos. El administrador los asigna en el modulo Tecnicos.</p>'
+    : items.map((item) => `
+      <label class="check">
+        <input type="checkbox" name="id_tecnicos" value="${escapeHtml(item.id)}" ${selected.includes(String(item.id)) ? "checked" : ""}>
+        ${escapeHtml(item.nombre)} ${item.dpi
+          ? `<span class="muted">· ${escapeHtml(formatDpi(item.dpi))}</span>`
+          : '<span class="badge days borrador">Sin DPI</span>'}
+      </label>`).join("");
+  updateTechnicianLimit();
+}
+
+// Al llegar a 10 se bloquean las casillas sin marcar.
+function updateTechnicianLimit() {
+  const boxes = [...coordinationForm.querySelectorAll('input[name="id_tecnicos"]')];
+  const count = boxes.filter((input) => input.checked).length;
+  boxes.forEach((input) => { input.disabled = !input.checked && count >= 10; });
+  document.querySelector("#coordinationTechCount").textContent = `(${count} de 10 como máximo)`;
 }
 
 function resetCoordinationForm() {
@@ -1232,6 +1353,8 @@ function resetCoordinationForm() {
   const companies = coordinationCatalogs?.proveedores || [];
   if (companies.length === 1) coordinationForm.elements.id_proveedor.value = String(companies[0].id);
   fillCoordinationInstitutions();
+  // reset() volveria a marcar los tecnicos de una edicion anterior (atributo checked).
+  fillCoordinationTechnicians([]);
   updateEndPreview();
 }
 
@@ -1290,7 +1413,14 @@ function maintenanceCell(row) {
 }
 
 function referenceCell(row) {
-  return `<span class="code">${escapeHtml(row.tipo_referencia)} ${escapeHtml(row.numero_referencia)}</span>`;
+  const value = (label, number) => (number
+    ? `<span class="code">${label} ${escapeHtml(number)}</span>`
+    : `<span class="badge days borrador">Falta ${label}</span>`);
+  return `${value("OC", row.numero_oc)}<br>${value("NOG", row.numero_nog)}`;
+}
+
+function letterButton(row) {
+  return `<button class="secondary small" data-letter-coordination="${escapeHtml(row.id_coordinacion)}">Carta</button>`;
 }
 
 function dateCell(value) {
@@ -1327,7 +1457,7 @@ function renderCoordinations() {
         <td>${dateCell(row.fecha_fin)} <span class="muted">${weekdayName(row.fecha_fin)}</span></td>
         <td>${escapeHtml(row.dias_habiles)}</td>
         <td>${remainingBadge(row)}</td>
-        <td class="actions">${canEdit ? `
+        <td class="actions">${letterButton(row)}${canEdit ? `
           <button class="secondary small" data-edit-coordination="${escapeHtml(row.id_coordinacion)}">Editar</button>
           <button class="small" data-finish-coordination="${escapeHtml(row.id_coordinacion)}">Finalizar</button>` : ""}
         </td>
@@ -1341,7 +1471,7 @@ function renderCoordinations() {
         <td>${row.finalizada_a_tiempo
           ? '<span class="badge days ok">A tiempo</span>'
           : '<span class="badge days anulado">Con atraso</span>'}</td>
-        <td></td>
+        <td class="actions">${letterButton(row)}</td>
       </tr>`).join("");
 }
 
@@ -1353,6 +1483,21 @@ document.querySelectorAll("[data-coordination-tab]").forEach((tab) => {
 });
 
 coordinationForm.elements.id_proveedor.addEventListener("change", () => fillCoordinationInstitutions());
+coordinationForm.elements.id_institucion.addEventListener("change", () => fillCoordinationRecipients());
+document.querySelector("#newRecipientToggle").addEventListener("click", () => {
+  const panel = document.querySelector("#newRecipientPanel");
+  panel.classList.toggle("hidden");
+  if (!panel.classList.contains("hidden")) newRecipientInputs().nombre.focus();
+});
+document.querySelector("#newRecipientCancel").addEventListener("click", closeNewRecipient);
+document.querySelector("#newRecipientSave").addEventListener("click", saveNewRecipient);
+// Enter en nombre o cargo guarda el destinatario en lugar de enviar la coordinacion.
+document.querySelector("#newRecipientPanel").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.target.tagName !== "INPUT") return;
+  event.preventDefault();
+  saveNewRecipient();
+});
+document.querySelector("#coordinationTechnicians").addEventListener("change", updateTechnicianLimit);
 coordinationForm.elements.fecha_inicio.addEventListener("input", updateEndPreview);
 coordinationForm.elements.dias_habiles.addEventListener("input", updateEndPreview);
 document.querySelector("#coordinationCancel").addEventListener("click", resetCoordinationForm);
@@ -1360,6 +1505,7 @@ document.querySelector("#coordinationCancel").addEventListener("click", resetCoo
 coordinationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(coordinationForm));
+  values.id_tecnicos = checkedValues(coordinationForm, "id_tecnicos");
   const id = values.id;
   delete values.id;
   coordinationSubmit.disabled = true;
@@ -1381,6 +1527,11 @@ coordinationForm.addEventListener("submit", async (event) => {
 });
 
 coordinationTableBody.addEventListener("click", async (event) => {
+  const letterId = event.target.dataset.letterCoordination;
+  if (letterId) {
+    await openCoordinationLetter(letterId);
+    return;
+  }
   const editId = event.target.dataset.editCoordination;
   const finishId = event.target.dataset.finishCoordination;
   const row = coordinationRows.activo.find((item) => String(item.id_coordinacion) === (editId || finishId));
@@ -1392,7 +1543,9 @@ coordinationTableBody.addEventListener("click", async (event) => {
     fields.id.value = row.id_coordinacion;
     fields.id_proveedor.value = String(row.id_proveedor);
     fillCoordinationInstitutions(row.id_institucion);
-    for (const name of ["nombre_mantenimiento", "tipo_referencia", "numero_referencia",
+    fillCoordinationRecipients(row.id_destinatario ?? "");
+    fillCoordinationTechnicians((row.id_tecnicos || []).map(String));
+    for (const name of ["nombre_mantenimiento", "numero_oc", "numero_nog",
       "fecha_coordinacion", "fecha_inicio", "dias_habiles"]) {
       fields[name].value = row[name] ?? "";
     }

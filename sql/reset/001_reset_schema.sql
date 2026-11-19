@@ -8,6 +8,9 @@
 BEGIN;
 
 DROP VIEW IF EXISTS vw_coordinaciones_trabajo CASCADE;
+DROP TABLE IF EXISTS coordinacion_tecnico CASCADE;
+DROP TABLE IF EXISTS destinatarios CASCADE;
+DROP FUNCTION IF EXISTS validar_maximo_tecnicos_coordinacion() CASCADE;
 DROP TABLE IF EXISTS coordinaciones_trabajo CASCADE;
 DROP TABLE IF EXISTS feriados CASCADE;
 DROP FUNCTION IF EXISTS dias_habiles_entre(DATE, DATE) CASCADE;

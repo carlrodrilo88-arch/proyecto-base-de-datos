@@ -48,6 +48,10 @@ GRANT EXECUTE ON PROCEDURE reemplazar_pdf_reporte(BIGINT, TEXT, VARCHAR, BIGINT,
 -- Coordinacion de trabajos: el generador crea, recoordina, amplia y finaliza.
 GRANT SELECT ON feriados, coordinaciones_trabajo, vw_coordinaciones_trabajo TO meditec_generador;
 GRANT INSERT, UPDATE ON coordinaciones_trabajo TO meditec_generador;
+-- Carta de coordinacion: destinatarios reutilizables y tecnicos asignados (se reemplazan completos).
+GRANT SELECT ON destinatarios, coordinacion_tecnico TO meditec_generador;
+GRANT INSERT ON destinatarios TO meditec_generador;
+GRANT INSERT, DELETE ON coordinacion_tecnico TO meditec_generador;
 GRANT EXECUTE ON FUNCTION fecha_actual_guatemala(), es_dia_habil(DATE),
     sumar_dias_habiles(DATE, INTEGER), dias_habiles_entre(DATE, DATE)
     TO meditec_generador, meditec_consulta;

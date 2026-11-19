@@ -26,6 +26,7 @@ sql/dml/003_carga_excel_equipos.sql
 sql/dml/004_usuario_administrador.sql
 sql/views/001_reportes_resumen.sql
 sql/migrations/010_coordinacion_trabajos.sql
+sql/migrations/011_carta_coordinacion.sql
 sql/security/001_roles_permisos.sql
 sql/security/002_usuario_web.sql
 sql/queries/001_consultas_entrega3.sql
@@ -49,6 +50,7 @@ psql -U postgres -d meditec_reportes -f sql/dml/003_carga_excel_equipos.sql
 psql -U postgres -d meditec_reportes -f sql/dml/004_usuario_administrador.sql
 psql -U postgres -d meditec_reportes -f sql/views/001_reportes_resumen.sql
 psql -U postgres -d meditec_reportes -f sql/migrations/010_coordinacion_trabajos.sql
+psql -U postgres -d meditec_reportes -f sql/migrations/011_carta_coordinacion.sql
 psql -U postgres -d meditec_reportes -f sql/security/001_roles_permisos.sql
 psql -U postgres -d meditec_reportes -f sql/security/002_usuario_web.sql
 psql -U postgres -d meditec_reportes -f sql/queries/001_consultas_entrega3.sql
@@ -100,6 +102,7 @@ psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/007_usuario_a
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/008_empresas_usuario_institucion.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/009_empresas_tecnico.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/010_coordinacion_trabajos.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/011_carta_coordinacion.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/dml/004_usuario_administrador.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/001_roles_permisos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/002_usuario_web.sql

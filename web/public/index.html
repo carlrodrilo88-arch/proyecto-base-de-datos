@@ -54,6 +54,7 @@
             <p class="nav-group">Catalogos</p>
             <button class="nav-button" data-module="instituciones">Instituciones</button>
             <button class="nav-button" data-module="servicios">Servicios solicitantes</button>
+            <button class="nav-button" data-module="destinatarios">Destinatarios de cartas</button>
             <button class="nav-button" data-module="equipos_medicos">Equipos medicos</button>
             <button class="nav-button" data-module="feriados">Feriados</button>
             <button id="techniciansNav" class="nav-button hidden" data-module="tecnicos">Tecnicos</button>
@@ -111,6 +112,16 @@
                 </label>
                 <label class="field" data-field="nit">NIT
                   <input name="nit" maxlength="30">
+                </label>
+                <label class="field" data-field="dpi">DPI
+                  <input name="dpi" maxlength="17" inputmode="numeric" placeholder="Ej. 2566 31409 0901"
+                    pattern="[0-9 \-]{13,17}" title="13 digitos; puede escribirlo con espacios">
+                </label>
+                <label class="field" data-field="cargo">Cargo
+                  <input name="cargo" maxlength="160" placeholder="Ej. Ingeniero en Mantenimiento">
+                </label>
+                <label class="field wide" data-field="linea_carta">Línea bajo el nombre en las cartas
+                  <input name="linea_carta" maxlength="200" placeholder="Opcional. Ej. Hospital General de Quetzaltenango">
                 </label>
                 <label class="field" data-field="especialidad">Especialidad
                   <input name="especialidad" maxlength="120">
@@ -314,18 +325,39 @@
                 <label class="field">Institución
                   <select name="id_institucion" required></select>
                 </label>
-                <label class="field wide">Nombre del mantenimiento
-                  <input name="nombre_mantenimiento" maxlength="180" required placeholder="Ej. Mantenimiento a desfibriladores">
+                <label class="field wide">Descripción del mantenimiento <span class="muted">(aparece en la carta)</span>
+                  <textarea name="nombre_mantenimiento" maxlength="600" required spellcheck="true" rows="3"
+                    placeholder="Ej. Mantenimiento preventivo a 02 congeladores (congelador de laboratorio marca VWR International) (Correspondiente a visita 1 de 2)"></textarea>
                 </label>
-                <label class="field">Tipo de referencia
-                  <select name="tipo_referencia" required>
-                    <option value="NOG">NOG</option>
-                    <option value="OC">Orden de compra (OC)</option>
-                  </select>
+                <label class="field">Orden de compra (OC)
+                  <input name="numero_oc" maxlength="80" required placeholder="Ej. 210967">
                 </label>
-                <label class="field">Número de NOG u OC
-                  <input name="numero_referencia" maxlength="80" required>
+                <label class="field">NOG
+                  <input name="numero_nog" maxlength="80" required placeholder="Ej. 30349281">
                 </label>
+                <label class="field">Destinatario de la carta <span class="muted">(opcional)</span>
+                  <select name="id_destinatario"></select>
+                </label>
+                <div class="field wide">
+                  <button type="button" id="newRecipientToggle" class="link-button" disabled>+ Agregar destinatario nuevo</button>
+                  <!-- Sin atributo name: estos campos no viajan con la coordinacion, se guardan aparte. -->
+                  <div id="newRecipientPanel" class="new-equipment hidden">
+                    <div class="form-grid">
+                      <label class="field">Nombre del destinatario
+                        <input data-recipient="nombre" maxlength="160" placeholder="Ej. Ing. Jahen Gildardo Figueroa Mérida">
+                      </label>
+                      <label class="field">Cargo
+                        <input data-recipient="cargo" maxlength="160" placeholder="Ej. Ingeniero en Mantenimiento">
+                      </label>
+                    </div>
+                    <div class="form-actions">
+                      <span class="hint">Queda registrado en la institución seleccionada para usarlo en otras cartas.</span>
+                      <span class="spacer"></span>
+                      <button type="button" id="newRecipientCancel" class="secondary">Cancelar</button>
+                      <button type="button" id="newRecipientSave">Guardar y seleccionar</button>
+                    </div>
+                  </div>
+                </div>
                 <label class="field">Fecha de coordinación
                   <input name="fecha_coordinacion" type="date" required>
                 </label>
@@ -339,6 +371,10 @@
                   <span>Último día de trabajo</span>
                   <p id="coordinationEnd" class="coordination-end muted" aria-live="polite">Indique el inicio y los días hábiles</p>
                 </div>
+                <fieldset class="field wide technician-field">
+                  <legend>Personal técnico de la carta <span id="coordinationTechCount" class="muted">(máximo 10)</span></legend>
+                  <div id="coordinationTechnicians" class="technician-options"></div>
+                </fieldset>
               </div>
               <div class="form-actions">
                 <span class="hint">Solo cuentan días hábiles (lunes a viernes, sin feriados); el día de inicio es el día 1.</span>

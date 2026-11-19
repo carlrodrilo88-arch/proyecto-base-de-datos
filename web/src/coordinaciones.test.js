@@ -1,13 +1,17 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { readBusinessDays, readCoordination, readDate, readHoliday } = require("./coordinaciones");
+const {
+  readBusinessDays, readCoordination, readDate, readDpi, readHoliday, readRecipient,
+} = require("./coordinaciones");
 
 const valid = {
   id_proveedor: "1",
   id_institucion: "2",
   nombre_mantenimiento: "  Mantenimiento a desfibriladores ",
-  tipo_referencia: "nog",
-  numero_referencia: " 12345678 ",
+  numero_oc: " 210967 ",
+  numero_nog: " 30349281 ",
+  id_destinatario: "4",
+  id_tecnicos: ["7", "8", "7"],
   fecha_coordinacion: "2026-11-17",
   fecha_inicio: "2026-11-19",
   dias_habiles: "5",
@@ -18,8 +22,10 @@ test("normaliza una coordinacion valida", () => {
     id_proveedor: 1,
     id_institucion: 2,
     nombre_mantenimiento: "Mantenimiento a desfibriladores",
-    tipo_referencia: "NOG",
-    numero_referencia: "12345678",
+    numero_oc: "210967",
+    numero_nog: "30349281",
+    id_destinatario: 4,
+    id_tecnicos: [7, 8],
     fecha_coordinacion: "2026-11-17",
     fecha_inicio: "2026-11-19",
     dias_habiles: 5,
@@ -34,12 +40,37 @@ test("rechaza un inicio anterior a la coordinacion", () => {
   assert.throws(() => readCoordination({ ...valid, fecha_inicio: "2026-11-16" }), { status: 400 });
 });
 
-test("exige empresa, institucion, nombre y referencia NOG u OC", () => {
+test("exige empresa, institucion, descripcion, OC y NOG", () => {
   for (const change of [{ id_proveedor: "" }, { id_institucion: "0" }, { nombre_mantenimiento: "  " },
-    { tipo_referencia: "FACTURA" }, { numero_referencia: "" }]) {
+    { numero_oc: "" }, { numero_nog: "  " }, { numero_oc: undefined }]) {
     assert.throws(() => readCoordination({ ...valid, ...change }), { status: 400 });
   }
-  assert.equal(readCoordination({ ...valid, tipo_referencia: "OC" }).tipo_referencia, "OC");
+});
+
+test("el destinatario y los tecnicos son opcionales; maximo 10 tecnicos", () => {
+  const data = readCoordination({ ...valid, id_destinatario: "", id_tecnicos: undefined });
+  assert.equal(data.id_destinatario, null);
+  assert.deepEqual(data.id_tecnicos, []);
+  assert.deepEqual(readCoordination({ ...valid, id_tecnicos: "3" }).id_tecnicos, [3]);
+  const ten = Array.from({ length: 10 }, (_, index) => String(index + 1));
+  assert.equal(readCoordination({ ...valid, id_tecnicos: ten }).id_tecnicos.length, 10);
+  assert.throws(() => readCoordination({ ...valid, id_tecnicos: [...ten, "11"] }), { status: 400 });
+  assert.throws(() => readCoordination({ ...valid, id_tecnicos: ["abc"] }), { status: 400 });
+});
+
+test("normaliza el DPI de 13 digitos", () => {
+  assert.equal(readDpi("2566 31409 0901"), "2566314090901");
+  assert.equal(readDpi("2566-31409-0901"), "2566314090901");
+  assert.equal(readDpi(""), null);
+  for (const value of ["123", "25663140909012", "2566 31409 090A"]) {
+    assert.throws(() => readDpi(value), { status: 400 });
+  }
+});
+
+test("valida el destinatario de la carta", () => {
+  assert.deepEqual(readRecipient({ id_institucion: "2", nombre: " Ing. Jahen Figueroa ", cargo: "Ingeniero en Mantenimiento" }),
+    { id_institucion: 2, nombre: "Ing. Jahen Figueroa", cargo: "Ingeniero en Mantenimiento" });
+  assert.throws(() => readRecipient({ id_institucion: "2", nombre: "Ing. X", cargo: "" }), { status: 400 });
 });
 
 test("valida los dias habiles", () => {
