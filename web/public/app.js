@@ -1416,7 +1416,7 @@ function referenceCell(row) {
   const value = (label, number) => (number
     ? `<span class="code">${label} ${escapeHtml(number)}</span>`
     : `<span class="badge days borrador">Falta ${label}</span>`);
-  return `${value("OC", row.numero_oc)}<br>${value("NOG", row.numero_nog)}`;
+  return `${value("OC", row.numero_oc)}<br>${value("NOG", row.numero_nog)}<br>${value("Pedido", row.numero_pedido)}`;
 }
 
 function letterButton(row) {
@@ -1545,7 +1545,7 @@ coordinationTableBody.addEventListener("click", async (event) => {
     fillCoordinationInstitutions(row.id_institucion);
     fillCoordinationRecipients(row.id_destinatario ?? "");
     fillCoordinationTechnicians((row.id_tecnicos || []).map(String));
-    for (const name of ["nombre_mantenimiento", "numero_oc", "numero_nog",
+    for (const name of ["nombre_mantenimiento", "numero_oc", "numero_nog", "numero_pedido",
       "fecha_coordinacion", "fecha_inicio", "dias_habiles"]) {
       fields[name].value = row[name] ?? "";
     }

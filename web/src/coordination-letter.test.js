@@ -1,8 +1,8 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const PDFDocument = require("pdfkit");
 const {
-  LETTER_TEMPLATES, footerTop, formatDpi, generateCoordinationLetter, letterDate, signatureLineY, workPeriod,
+  FOOTER_TOP, TEKNOR, formatDpi, generateCoordinationLetter, letterDate, signatureLineY,
+  teknorLetterDate, teknorSignatureTop, teknorWorkPeriod, workPeriod,
 } = require("./coordination-letter");
 
 const letter = {
@@ -10,7 +10,7 @@ const letter = {
   institucion: "IGSS, Hospital General de Quetzaltenango",
   destinatario: "Ing. Jahen Gildardo Figueroa Mérida", destinatario_cargo: "Ingeniero en Mantenimiento",
   descripcion: "Mantenimiento preventivo a 02 congeladores",
-  numero_oc: "210967", numero_nog: "30349281",
+  numero_oc: "210967", numero_nog: "30349281", numero_pedido: "550/2026",
   fecha_coordinacion: "2026-09-04", fecha_inicio: "2026-09-08", fecha_fin: "2026-09-14", dias_habiles: 5,
   tecnicos: [{ nombre: "Miguel Monzon", dpi: "2566314090901" }],
   empresa: {},
@@ -45,19 +45,31 @@ test("genera la carta de cada plantilla en una sola hoja", async () => {
 });
 
 test("la firma queda cerca del pie con pocos tecnicos y baja con el cuerpo si este es largo", () => {
-  const doc = new PDFDocument({ size: "LETTER" });
-  for (const [plantilla, template] of Object.entries(LETTER_TEMPLATES)) {
-    const footer = footerTop(doc, template);
-    const short = signatureLineY(doc, template, 400);
-    assert.ok(short > footer - 60 && short < footer - 30, `${plantilla}: firma en ${short}, pie en ${footer}`);
-    assert.equal(signatureLineY(doc, template, 650), 712, plantilla);
-  }
+  const short = signatureLineY(400);
+  assert.ok(short > FOOTER_TOP - 60 && short < FOOTER_TOP - 30, `firma en ${short}, pie en ${FOOTER_TOP}`);
+  assert.equal(signatureLineY(650), 712);
+  assert.equal(teknorSignatureTop(400) + TEKNOR.signatureHeight, TEKNOR.signatureBottom);
+  assert.equal(teknorSignatureTop(670), 676);
 });
 
-test("exige tecnicos con DPI, OC, NOG y una plantilla conocida", async () => {
+test("Teknor escribe la fecha y el periodo con su formato", () => {
+  assert.equal(teknorLetterDate("2026-09-02"), "02 de septiembre de 2026");
+  assert.equal(teknorWorkPeriod("2026-09-03", "2026-09-04", "2026-09-02"),
+    "iniciando la ejecución día jueves 03 y finalizando el día viernes 04 de septiembre del presente año 2026");
+  assert.equal(teknorWorkPeriod("2026-09-28", "2026-10-02", "2026-09-20"),
+    "iniciando la ejecución día lunes 28 de septiembre y finalizando el día viernes 02 de octubre del presente año 2026");
+  assert.equal(teknorWorkPeriod("2026-12-30", "2027-01-05", "2026-12-15"),
+    "iniciando la ejecución día miércoles 30 de diciembre de 2026 y finalizando el día martes 05 de enero de 2027");
+  assert.equal(teknorWorkPeriod("2026-09-03", "2026-09-03", "2026-09-02"),
+    "ejecutando el día jueves 03 de septiembre del presente año 2026");
+});
+
+test("exige tecnicos con DPI, OC, NOG, numero de pedido y una plantilla conocida", async () => {
   await assert.rejects(generateCoordinationLetter({ ...letter, tecnicos: [] }), { status: 400 });
   await assert.rejects(generateCoordinationLetter({ ...letter, tecnicos: [{ nombre: "Sin DPI", dpi: null }] }),
     /Sin DPI/);
   await assert.rejects(generateCoordinationLetter({ ...letter, numero_oc: null }), { status: 400 });
+  await assert.rejects(generateCoordinationLetter({ ...letter, numero_pedido: "" }), /pedido/);
+  await assert.rejects(generateCoordinationLetter({ ...letter, plantilla: "teknor", numero_pedido: null }), /pedido/);
   await assert.rejects(generateCoordinationLetter({ ...letter, plantilla: "otra" }), { status: 400 });
 });

@@ -1228,7 +1228,7 @@ app.delete("/api/feriados/:id", requireAuth, requireRole("administrador"), async
 /* Coordinacion de trabajos: plazo en dias habiles; cada usuario ve solo las de sus empresas. */
 
 const coordinationColumns = `id_coordinacion, id_proveedor, empresa, id_institucion, institucion,
-  nombre_mantenimiento, numero_oc, numero_nog, id_destinatario, destinatario, destinatario_cargo,
+  nombre_mantenimiento, numero_oc, numero_nog, numero_pedido, id_destinatario, destinatario, destinatario_cargo,
   ARRAY(SELECT ct.id_tecnico::text FROM coordinacion_tecnico ct
         WHERE ct.id_coordinacion = vw_coordinaciones_trabajo.id_coordinacion) AS id_tecnicos,
   TO_CHAR(fecha_coordinacion, 'YYYY-MM-DD') AS fecha_coordinacion,
@@ -1330,11 +1330,12 @@ app.post("/api/coordinaciones", requireAuth, requireRole(...allowedEditors), asy
   const id = await withUserTransaction(req.session.id_usuario, async (client) => {
     const result = await client.query(
       `INSERT INTO coordinaciones_trabajo (id_proveedor, id_institucion, nombre_mantenimiento, numero_oc,
-         numero_nog, fecha_coordinacion, fecha_inicio, dias_habiles, fecha_fin, id_usuario_creador, id_destinatario)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$7,$9,$10) RETURNING id_coordinacion`,
+         numero_nog, fecha_coordinacion, fecha_inicio, dias_habiles, fecha_fin, id_usuario_creador, id_destinatario,
+         numero_pedido)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$7,$9,$10,$11) RETURNING id_coordinacion`,
       [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.numero_oc,
         data.numero_nog, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, req.session.id_usuario,
-        data.id_destinatario]
+        data.id_destinatario, data.numero_pedido]
     );
     const newId = result.rows[0].id_coordinacion;
     await replaceCoordinationTechnicians(client, newId, data.id_tecnicos);
@@ -1356,10 +1357,12 @@ app.put("/api/coordinaciones/:id", requireAuth, requireRole(...allowedEditors), 
   await withUserTransaction(req.session.id_usuario, async (client) => {
     await client.query(
       `UPDATE coordinaciones_trabajo SET id_proveedor=$1, id_institucion=$2, nombre_mantenimiento=$3,
-         numero_oc=$4, numero_nog=$5, fecha_coordinacion=$6, fecha_inicio=$7, dias_habiles=$8, id_destinatario=$10
+         numero_oc=$4, numero_nog=$5, fecha_coordinacion=$6, fecha_inicio=$7, dias_habiles=$8, id_destinatario=$10,
+         numero_pedido=$11
        WHERE id_coordinacion=$9 AND estado='activo'`,
       [data.id_proveedor, data.id_institucion, data.nombre_mantenimiento, data.numero_oc,
-        data.numero_nog, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, id, data.id_destinatario]
+        data.numero_nog, data.fecha_coordinacion, data.fecha_inicio, data.dias_habiles, id, data.id_destinatario,
+        data.numero_pedido]
     );
     await replaceCoordinationTechnicians(client, id, data.id_tecnicos);
   });
@@ -1405,6 +1408,7 @@ app.get("/api/coordinaciones/:id/carta", requireAuth, asyncHandler(async (req, r
     descripcion: coordination.nombre_mantenimiento,
     numero_oc: coordination.numero_oc,
     numero_nog: coordination.numero_nog,
+    numero_pedido: coordination.numero_pedido,
     fecha_coordinacion: coordination.fecha_coordinacion,
     fecha_inicio: coordination.fecha_inicio,
     fecha_fin: coordination.fecha_fin,

@@ -27,6 +27,7 @@ sql/dml/004_usuario_administrador.sql
 sql/views/001_reportes_resumen.sql
 sql/migrations/010_coordinacion_trabajos.sql
 sql/migrations/011_carta_coordinacion.sql
+sql/migrations/012_numero_pedido_coordinacion.sql
 sql/security/001_roles_permisos.sql
 sql/security/002_usuario_web.sql
 sql/queries/001_consultas_entrega3.sql
@@ -51,6 +52,7 @@ psql -U postgres -d meditec_reportes -f sql/dml/004_usuario_administrador.sql
 psql -U postgres -d meditec_reportes -f sql/views/001_reportes_resumen.sql
 psql -U postgres -d meditec_reportes -f sql/migrations/010_coordinacion_trabajos.sql
 psql -U postgres -d meditec_reportes -f sql/migrations/011_carta_coordinacion.sql
+psql -U postgres -d meditec_reportes -f sql/migrations/012_numero_pedido_coordinacion.sql
 psql -U postgres -d meditec_reportes -f sql/security/001_roles_permisos.sql
 psql -U postgres -d meditec_reportes -f sql/security/002_usuario_web.sql
 psql -U postgres -d meditec_reportes -f sql/queries/001_consultas_entrega3.sql
@@ -103,6 +105,7 @@ psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/008_empresas_
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/009_empresas_tecnico.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/010_coordinacion_trabajos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/011_carta_coordinacion.sql
+psql -U meditec_test -d meditec_reportes_pruebas -f sql/migrations/012_numero_pedido_coordinacion.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/dml/004_usuario_administrador.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/001_roles_permisos.sql
 psql -U meditec_test -d meditec_reportes_pruebas -f sql/security/002_usuario_web.sql
@@ -153,6 +156,12 @@ a viernes sin feriados; el dia de inicio es el dia 1 y un trigger calcula el
 ultimo dia al crear, recoordinar o ampliar. Despues de aplicarla se repiten los
 dos scripts de seguridad. Los feriados de anios siguientes los registra el
 administrador desde la web.
+
+La migracion 012 agrega `coordinaciones_trabajo.numero_pedido` (No. de pedido que
+se imprime en la carta junto a la OC y el NOG). Es obligatorio en coordinaciones
+nuevas o editadas; las anteriores lo piden al editarlas. Amplia la vista con
+`CREATE OR REPLACE`, por lo que conserva sus permisos y no hace falta repetir los
+scripts de seguridad.
 
 La septima migracion agrega `usuarios.usuario` para iniciar sesion con nombre de
 usuario o correo, y vuelve opcional el correo. Los usuarios existentes reciben

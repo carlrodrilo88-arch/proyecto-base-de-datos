@@ -10,6 +10,7 @@ const valid = {
   nombre_mantenimiento: "  Mantenimiento a desfibriladores ",
   numero_oc: " 210967 ",
   numero_nog: " 30349281 ",
+  numero_pedido: " 683/2026 ",
   id_destinatario: "4",
   id_tecnicos: ["7", "8", "7"],
   fecha_coordinacion: "2026-11-17",
@@ -24,6 +25,7 @@ test("normaliza una coordinacion valida", () => {
     nombre_mantenimiento: "Mantenimiento a desfibriladores",
     numero_oc: "210967",
     numero_nog: "30349281",
+    numero_pedido: "683/2026",
     id_destinatario: 4,
     id_tecnicos: [7, 8],
     fecha_coordinacion: "2026-11-17",
@@ -40,9 +42,10 @@ test("rechaza un inicio anterior a la coordinacion", () => {
   assert.throws(() => readCoordination({ ...valid, fecha_inicio: "2026-11-16" }), { status: 400 });
 });
 
-test("exige empresa, institucion, descripcion, OC y NOG", () => {
+test("exige empresa, institucion, descripcion, OC, NOG y numero de pedido", () => {
   for (const change of [{ id_proveedor: "" }, { id_institucion: "0" }, { nombre_mantenimiento: "  " },
-    { numero_oc: "" }, { numero_nog: "  " }, { numero_oc: undefined }]) {
+    { numero_oc: "" }, { numero_nog: "  " }, { numero_oc: undefined },
+    { numero_pedido: "" }, { numero_pedido: undefined }]) {
     assert.throws(() => readCoordination({ ...valid, ...change }), { status: 400 });
   }
 });

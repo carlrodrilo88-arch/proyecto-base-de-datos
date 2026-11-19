@@ -64,6 +64,7 @@ function readCoordination(body = {}) {
     nombre_mantenimiento: readText(body.nombre_mantenimiento, "La descripcion del mantenimiento", 600),
     numero_oc: readText(body.numero_oc, "El numero de orden de compra (OC)", 80),
     numero_nog: readText(body.numero_nog, "El numero de NOG", 80),
+    numero_pedido: readText(body.numero_pedido, "El numero de pedido", 80),
     id_destinatario: readOptionalId(body.id_destinatario, "un destinatario valido"),
     id_tecnicos: readTechnicianIds(body.id_tecnicos),
     fecha_coordinacion: readDate(body.fecha_coordinacion, "Fecha de coordinacion"),
